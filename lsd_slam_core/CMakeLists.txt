@@ -9,6 +9,8 @@ project(lsd_slam_core)
 #  MinSizeRel : w/o debug symbols, w/ optimization, stripped binaries
 set(CMAKE_BUILD_TYPE Release)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   dynamic_reconfigure
@@ -20,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen REQUIRED)
 find_package(X11 REQUIRED)
+find_package(OpenCV REQUIRED)
 include(cmake/FindG2O.cmake)
 include(cmake/FindSuiteParse.cmake)
 
@@ -85,9 +88,12 @@ set(SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/IOWrapper/OpenCV/ImageDisplay_OpenCV.cpp
 )
 
+#we have to go out a level for g2o because FindG2O is weird.
 include_directories(
   include
   ${EIGEN3_INCLUDE_DIR}
+  ${G2O_INCLUDE_DIR}/..
+  ${OpenCV_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${CSPARSE_INCLUDE_DIR} #Has been set by SuiteParse
@@ -103,12 +109,12 @@ target_link_libraries(lsdslam ${FABMAP_LIB} ${G2O_LIBRARIES} ${catkin_LIBRARIES}
 
 # build live ros node
 add_executable(live_slam src/main_live_odometry.cpp)
-target_link_libraries(live_slam lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES})
+target_link_libraries(live_slam lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES} X11)
 
 
 # build image node
 add_executable(dataset src/main_on_images.cpp)
-target_link_libraries(dataset lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES})
+target_link_libraries(dataset lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES})
 
 # TODO add INSTALL
 

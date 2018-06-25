@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   roscpp
   rosbag
+  std_msgs
   message_generation
   roslib
 )
@@ -41,8 +42,8 @@ set(CMAKE_CXX_FLAGS
    "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++0x"
 )
 
-add_message_files(DIRECTORY msg FILES keyframeMsg.msg keyframeGraphMsg.msg)
-generate_messages(DEPENDENCIES)
+add_message_files(FILES keyframeMsg.msg keyframeGraphMsg.msg)
+generate_messages(DEPENDENCIES std_msgs)
 
 generate_dynamic_reconfigure_options(
   cfg/LSDSLAMViewerParams.cfg
