@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
 )
 
+find_package(Qt4 COMPONENTS QtCore QtGUI)
 find_package(OpenGL REQUIRED)
 set(QT_USE_QTOPENGL TRUE)
 set(QT_USE_QTXML TRUE)
@@ -31,6 +32,9 @@ find_package(QGLViewer REQUIRED)
 find_package(Eigen REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
+
+message("-- QT_INCLUDES : " ${QT_INCLUDES})
+message("-- QGLVIEWER_INCLUDE_DIR : " ${QGLVIEWER_INCLUDE_DIR})
 
 include_directories(${QGLVIEWER_INCLUDE_DIR}
 		    ${catkin_INCLUDE_DIRS} 
