@@ -236,6 +236,18 @@ int main( int argc, char** argv )
 		assert(imageDist.type() == CV_8U);
 
 		undistorter->undistort(imageDist, image);
+
+		cv::namedWindow( "Undistorted Img", cv::WINDOW_AUTOSIZE );// Create a window for display.
+    	cv::imshow( "Undistorted Img", image );                   // Show our image inside it.
+		cv::namedWindow( "Distorted Img", cv::WINDOW_AUTOSIZE );// Create a window for display.
+    	cv::imshow( "Distorted Img", imageDist );                   // Show our image inside it.
+	
+		int key = cv::waitKey(30) & 255; // key is an integer here
+		if (key == 27) {
+			printf("Quitting...");
+			return 0;            // break when `esc' key is pressed
+		}
+
 		assert(image.type() == CV_8U);
 
 		if(runningIDX == 0)
