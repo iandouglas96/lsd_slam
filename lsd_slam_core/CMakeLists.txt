@@ -18,6 +18,8 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   roscpp
   rosbag
+  tf2_geometry_msgs
+  tf2_ros
 )
 
 find_package(Eigen REQUIRED)

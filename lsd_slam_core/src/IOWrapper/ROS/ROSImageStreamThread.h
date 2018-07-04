@@ -30,6 +30,11 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/Float64.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2/convert.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <Eigen/Dense>
 
 #include "util/Undistorter.h"
 
@@ -59,13 +64,18 @@ public:
 	 * Thread main function.
 	 */
 	void operator()();
+
+	//Get depth (in meters) for a particular pixel at x,y
+    float getDepth(int x, int y);
 	
 	// get called on ros-message callbacks
 	void vidCb(const sensor_msgs::ImageConstPtr img);
 	void infoCb(const sensor_msgs::CameraInfoConstPtr info);
+	void radiusCb(const std_msgs::Float64::ConstPtr& msg);
+
 
 private:
-
+	//Image stream stuff
 	bool haveCalib;
 	Undistorter* undistorter;
 
@@ -75,6 +85,24 @@ private:
 	ros::Subscriber vid_sub;
 
 	int lastSEQ;
+
+	//Depth calc stuff
+	int old_width_, old_height_;
+	cv::Matx33d cam_intrinsics;
+
+	tf2_ros::Buffer *tf_buffer;
+    tf2_ros::TransformListener *tf_listener;
+
+    tf2::Stamped<tf2::Transform> top_left_transform;
+
+	ros::Subscriber radius_sub;
+    float tunnel_radius;
+
+	Eigen::Vector3d focal_plane_dir;
+
+    cv::Point3d calcProjectionCameraFrame(int x, int y);
+    void unitVectorToPose(const std::string& frame, cv::Point3f vec, tf2::Stamped<tf2::Transform>& trans);
+    float calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform);
 };
 
 }

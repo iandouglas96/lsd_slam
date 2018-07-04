@@ -682,13 +682,14 @@ void SlamSystem::debugDisplayDepthMap()
 			1e-6 * (float)keyFrameGraph->totalPoints);
 
 
-	if(onSceenInfoDisplay)
+	if(onSceenInfoDisplay) {
 		printMessageOnCVImage(map->debugImageDepth, buf1, buf2);
+	}
 	if (displayDepthMap)
 		Util::displayImage( "DebugWindow DEPTH", map->debugImageDepth, false );
 
-	int pressedKey = Util::waitKey(1);
-	handleKey(pressedKey);
+	//int pressedKey = Util::waitKey(1);
+	//handleKey(pressedKey);
 }
 
 
@@ -848,7 +849,9 @@ void SlamSystem::gtDepthInit(uchar* image, float* depth, double timeStamp, int i
 		keyFrameGraph->idToKeyFrame.insert(std::make_pair(currentKeyFrame->id(), currentKeyFrame));
 		keyFrameGraph->idToKeyFrameMutex.unlock();
 	}
-	if(continuousPCOutput && outputWrapper != 0) outputWrapper->publishKeyframe(currentKeyFrame.get());
+	if(continuousPCOutput && outputWrapper != 0) {
+		outputWrapper->publishKeyframe(currentKeyFrame.get());
+	} 
 
 	printf("Done GT initialization!\n");
 }

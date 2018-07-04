@@ -67,7 +67,7 @@ void dynConfCbDebug(lsd_slam_core::LSDDebugParamsConfig &config, uint32_t level)
 	printRelocalizationInfo = config.printRelocalizationInfo;
 
 
-	continuousPCOutput = config.continuousPCOutput;
+	//continuousPCOutput = config.continuousPCOutput;
 
 
 	saveKeyframes = config.saveKeyframes;

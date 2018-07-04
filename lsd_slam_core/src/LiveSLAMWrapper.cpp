@@ -27,9 +27,12 @@
 #include "IOWrapper/ImageDisplay.h"
 #include "IOWrapper/Output3DWrapper.h"
 #include "IOWrapper/InputImageStream.h"
+#include "IOWrapper/ROS/ROSImageStreamThread.h"
 #include "util/globalFuncs.h"
 
 #include <iostream>
+
+#include "opencv2/opencv.hpp"
 
 namespace lsd_slam
 {
@@ -102,9 +105,20 @@ void LiveSLAMWrapper::Loop()
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
 		
+		//This is clunky, probably should handle differently
+		//ROS_INFO("%f", ((ROSImageStreamThread*)imageStream)->getDepth(500,500));
+
 		// process image
-		//Util::displayImage("MyVideo", image.data);
+		Util::displayImage("MyVideo", image.data);
 		newImageCallback(image.data, image.timestamp);
+
+		Util::displayThreadLoop();
+
+		int key = cv::waitKey(30) & 255; // key is an integer here
+		if (key == 27) {
+			printf("Quitting...");
+			break;            // break when `esc' key is pressed
+		}
 	}
 }
 
@@ -129,7 +143,15 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 	// need to initialize
 	if(!isInitialized)
 	{
-		monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
+		float depth[width*height];
+		for (int x=0; x<width; x++) {
+			for (int y=0; y<height; y++) {
+				depth[x+y*width] = ((ROSImageStreamThread*)imageStream)->getDepth(x,y);
+			}
+		}
+
+		//monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
+		monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)

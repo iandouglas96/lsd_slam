@@ -37,6 +37,7 @@ namespace Util
 		bool autoSize;
 	};
 
+void displayThreadLoop();
 
 /// Image display function working on different platforms.
 /// On Android, the window name is ignored as all images are output fullscreen.

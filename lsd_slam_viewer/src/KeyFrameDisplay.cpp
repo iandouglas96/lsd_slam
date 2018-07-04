@@ -159,11 +159,11 @@ void KeyFrameDisplay::refreshPC()
 			float depth4 = depth*depth; depth4*= depth4;
 
 
-			if(originalInput[x+y*width].idepth_var * depth4 > my_scaledTH)
+			/*if(originalInput[x+y*width].idepth_var * depth4 > my_scaledTH)
 				continue;
 
 			if(originalInput[x+y*width].idepth_var * depth4 * my_scale*my_scale > my_absTH)
-				continue;
+				continue;*/
 
 			if(my_minNearSupport > 1)
 			{
@@ -183,6 +183,8 @@ void KeyFrameDisplay::refreshPC()
 				if(nearSupport < my_minNearSupport)
 					continue;
 			}
+
+			//printf("%i %i %f\n", x, y, depth);
 
 			tmpBuffer[vertexBufferNumPoints].point[0] = (x*fxi + cxi) * depth;
 			tmpBuffer[vertexBufferNumPoints].point[1] = (y*fyi + cyi) * depth;
