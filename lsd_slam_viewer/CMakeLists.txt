@@ -20,9 +20,14 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rosbag
   std_msgs
-  message_generation
+  geometry_msgs
   roslib
+  message_generation
 )
+
+
+add_message_files(FILES keyframeMsg.msg keyframeGraphMsg.msg)
+generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 
 find_package(Qt4 COMPONENTS QtCore QtGUI)
 find_package(OpenGL REQUIRED)
@@ -35,6 +40,7 @@ find_package(Boost REQUIRED COMPONENTS thread)
 
 message("-- QT_INCLUDES : " ${QT_INCLUDES})
 message("-- QGLVIEWER_INCLUDE_DIR : " ${QGLVIEWER_INCLUDE_DIR})
+message("-- QGLVIEWER_LIB : " ${QGLVIEWER_LIBRARY})
 
 include_directories(${QGLVIEWER_INCLUDE_DIR}
 		    ${catkin_INCLUDE_DIRS} 
@@ -46,13 +52,15 @@ set(CMAKE_CXX_FLAGS
    "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++0x"
 )
 
-add_message_files(FILES keyframeMsg.msg keyframeGraphMsg.msg)
-generate_messages(DEPENDENCIES std_msgs)
-
 generate_dynamic_reconfigure_options(
   cfg/LSDSLAMViewerParams.cfg
 )
 
+catkin_package(
+# LIBRARIES strands_gazing
+  CATKIN_DEPENDS std_msgs
+# DEPENDS system_lib
+)
 
 # Sources files
 set(SOURCE_FILES         
@@ -74,12 +82,14 @@ include_directories(
 )  
 
 add_executable(viewer src/main_viewer.cpp ${SOURCE_FILES} ${HEADER_FILES})
-target_link_libraries(viewer ${QGLViewer_LIBRARIES}
-			     ${QGLVIEWER_LIBRARY} 
-			     ${catkin_LIBRARIES}
-			     ${Boost_LIBRARIES}
-			     ${QT_LIBRARIES}
-			     GL glut GLU
+add_dependencies(viewer lsd_slam_viewer_generate_messages_cpp)
+target_link_libraries(viewer 
+          ${QGLViewer_LIBRARIES}
+			    ${QGLVIEWER_LIBRARY} 
+			    ${catkin_LIBRARIES}
+			    ${Boost_LIBRARIES}
+			    ${QT_LIBRARIES}
+			    GL glut GLU
 		     )
 
 #add_executable(videoStitch src/main_stitchVideos.cpp)

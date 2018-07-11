@@ -26,6 +26,7 @@
 #include <boost/thread/locks.hpp>
 #include "util/settings.h"
 #include "IOWrapper/Timestamp.h"
+#include "IOWrapper/ROS/ROSImageStreamThread.h"
 #include "opencv2/core/core.hpp"
 
 #include "util/SophusUtil.h"
@@ -97,6 +98,8 @@ public:
 
 	/** Sets the visualization where point clouds and camera poses will be sent to. */
 	void setVisualization(Output3DWrapper* outputWrapper);
+
+	void setLidarDepth(ROSImageStreamThread* lidarDepth);
 
 	void requestDepthMapScreenshot(const std::string& filename);
 
@@ -170,7 +173,7 @@ private:
 	// Individual / no locking
 	Output3DWrapper* outputWrapper;	// no lock required
 	KeyFrameGraph* keyFrameGraph;	// has own locks
-
+	ROSImageStreamThread* lidarDepth;
 
 
 	// Tracking: if (!create) set candidate, set create.

@@ -37,7 +37,7 @@
 //	typedef Sophus::Vector3d Vector3;
 //	typedef Sophus::Vector4d Vector4;
 //	typedef Sophus::Vector6d Vector6;
-//	typedef Sophus::Vector7d Vector7;
+	typedef Sophus::Vector7d Vector7;
 //	typedef Sophus::Quaterniond Quaternion;
 	typedef Sophus::SE3d SE3;
 	typedef Sophus::Sim3d Sim3;

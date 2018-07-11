@@ -20,8 +20,8 @@ IF(UNIX)
   MESSAGE(STATUS "Searching for g2o ...")
   FIND_PATH(G2O_INCLUDE_DIR
     NAMES core math_groups types
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/
-    PATH_SUFFIXES include/g2o include)
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/ ${PROJECT_SOURCE_DIR}/thirdparty/g2o
+    PATH_SUFFIXES include/g2o include g2o)
 
   IF (G2O_INCLUDE_DIR)
     MESSAGE(STATUS "Found g2o headers in: ${G2O_INCLUDE_DIR}")
@@ -29,39 +29,39 @@ IF(UNIX)
 
   FIND_LIBRARY(G2O_CORE_LIB             
     NAMES g2o_core 
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib 
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
   FIND_LIBRARY(G2O_STUFF_LIB            
     NAMES g2o_stuff 
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
   FIND_LIBRARY(G2O_TYPES_SLAM3D_LIB     
     NAMES g2o_types_slam3d 
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
   FIND_LIBRARY(G2O_SOLVER_CHOLMOD_LIB   
     NAMES g2o_solver_cholmod 
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
   FIND_LIBRARY(G2O_SOLVER_PCG_LIB       
     NAMES g2o_solver_pcg 
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
   FIND_LIBRARY(G2O_SOLVER_CSPARSE_LIB   
     NAMES g2o_solver_csparse 
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
   FIND_LIBRARY(G2O_INCREMENTAL_LIB      
     NAMES g2o_incremental 
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
   FIND_LIBRARY(G2O_CSPARSE_EXTENSION_LIB
     NAMES g2o_csparse_extension
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
   FIND_LIBRARY(G2O_TYPE_SBA
     NAMES g2o_types_sba
-    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib
+    PATHS /usr/local /usr /opt/ros/$ENV{ROS_DISTRO}/lib ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib
     PATH_SUFFIXES lib)
 
 

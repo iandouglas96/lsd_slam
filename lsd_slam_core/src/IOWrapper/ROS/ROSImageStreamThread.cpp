@@ -27,6 +27,10 @@
 #include "cv_bridge/cv_bridge.h"
 #include "util/settings.h"
 #include <Eigen/Dense>
+#undef USE_ROS //Make PCL
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/range_image/range_image_planar.h>
 
 #include <iostream>
 #include <fstream>
@@ -40,11 +44,23 @@ using namespace cv;
 
 ROSImageStreamThread::ROSImageStreamThread()
 {
+	//load params
+	nh_.param("init_res_scale_h", init_res_scale_h, 10);
+	nh_.param("init_res_scale_w", init_res_scale_w, 2);
+	nh_.param("use_tunnel_estimator", use_tunnel_estimator, false);
+
+	//Set up lidar and camera calibration
+	//This should really not be hardcoded
+    sensorPose.translation() << -0.0579167, 0.0585683, 0.0; //Translation matrix
+    sensorPose.linear() <<  0.999899,   0.0136208,  0.00416754,
+                            -0.0138209, 0.998525,   0.0525113,
+                            -0.00344614,-0.0525636, 0.998612; //Rotation matrix
+    sensorPose.linear() = sensorPose.linear().transpose().eval(); 
+
 	// subscribe
 	vid_channel = nh_.resolveName("image");
-	vid_sub          = nh_.subscribe(vid_channel,1, &ROSImageStreamThread::vidCb, this);
-
-	// subscribe to tunnel radius
+	vid_sub     = nh_.subscribe(vid_channel,1, &ROSImageStreamThread::vidCb, this);
+	pointcloud_sub = nh_.subscribe(nh_.resolveName("pointcloud"), 1, &ROSImageStreamThread::pointCloudCb, this);
 	std::string radius_channel = nh_.resolveName("local_tunnel_radius");
 	radius_sub = nh_.subscribe(radius_channel,1, &ROSImageStreamThread::radiusCb, this);
 
@@ -63,11 +79,17 @@ ROSImageStreamThread::ROSImageStreamThread()
 	lastSEQ = 0;
 
 	haveCalib = false;
+	haveDepthMap = false;
+}
+
+bool ROSImageStreamThread::depthReady()
+{
+	return haveDepthMap;
 }
 
 float ROSImageStreamThread::getDepth(int x, int y)
 {
-    if (this->tunnel_radius > 0 && haveCalib) {
+    if (this->tunnel_radius > 0 && haveCalib && use_tunnel_estimator) {
 		//Deal with cropping
 		//x += (old_width_-width_)/2;
 		//y += (old_height_-height_)/2;
@@ -79,7 +101,9 @@ float ROSImageStreamThread::getDepth(int x, int y)
 
 		this->unitVectorToPose("cam_top_left", cam_pt, pose);
         return this->calcDistance(pose, this->top_left_transform);
-    }
+    } else if (haveDepthMap) {
+		return depth_map.at<float>(y,x);
+	}
     return -1;
 }
 
@@ -213,6 +237,41 @@ void ROSImageStreamThread::operator()()
 	exit(0);
 }
 
+void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg)
+{
+	//Need camera matrix to do anything useful with data
+	if (!haveCalib) return;
+
+	//ROS_INFO("Got Pointcloud...");
+
+	pcl::PointCloud<pcl::PointXYZ>::Ptr pc =
+		pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>);
+	pcl::fromROSMsg(*msg, *pc);
+
+	//ROS_INFO_STREAM(*pc << "\n");
+
+	pcl::RangeImagePlanar rangeImage;
+	
+	rangeImage.createFromPointCloudWithFixedSize(*pc, width_/init_res_scale_w, height_/init_res_scale_h,
+									cx_/init_res_scale_w, cy_/init_res_scale_h, 
+									fx_/init_res_scale_w, fy_/init_res_scale_h, 
+									sensorPose, pcl::RangeImagePlanar::LASER_FRAME);
+
+	cv::Mat image = cv::Mat(rangeImage.height, rangeImage.width, CV_32F, -1.0);
+
+	for (int y=0; y<rangeImage.height; y+=1) {
+		for (int x=0; x<rangeImage.width; x+=1) {
+			if (rangeImage.getPoint(y*rangeImage.width + x).range > 0) {
+				image.at<float>(y,x) = (rangeImage.getPoint(y*rangeImage.width + x).range);
+				//ROS_INFO("depth: %f",image.at<float>(y,x));
+			}
+		}
+	}
+
+	//std::cout << rangeImage << "\n";
+	cv::resize(image,depth_map,cv::Size(1280, 1024),0,0,INTER_AREA);//resize image
+	haveDepthMap = true;
+}
 
 void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 {
@@ -257,15 +316,6 @@ void ROSImageStreamThread::infoCb(const sensor_msgs::CameraInfoConstPtr info)
 		fy_ = info->P[5];
 		cx_ = info->P[2];
 		cy_ = info->P[6];
-
-		if(fx_ == 0 || fy_==0)
-		{
-			printf("camera calib from P seems wrong, trying calib from K\n");
-			fx_ = info->K[0];
-			fy_ = info->K[4];
-			cx_ = info->K[2];
-			cy_ = info->K[5];
-		}
 
 		width_ = info->width;
 		height_ = info->height;

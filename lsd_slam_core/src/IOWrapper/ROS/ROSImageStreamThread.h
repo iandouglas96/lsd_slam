@@ -29,12 +29,14 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Float64.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <Eigen/Dense>
+#include <opencv2/opencv.hpp>
 
 #include "util/Undistorter.h"
 
@@ -67,16 +69,19 @@ public:
 
 	//Get depth (in meters) for a particular pixel at x,y
     float getDepth(int x, int y);
+
+	bool depthReady();
 	
 	// get called on ros-message callbacks
 	void vidCb(const sensor_msgs::ImageConstPtr img);
 	void infoCb(const sensor_msgs::CameraInfoConstPtr info);
 	void radiusCb(const std_msgs::Float64::ConstPtr& msg);
+	void pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg);
 
 
 private:
 	//Image stream stuff
-	bool haveCalib;
+	bool haveCalib, haveDepthMap;
 	Undistorter* undistorter;
 
 	ros::NodeHandle nh_;
@@ -103,6 +108,13 @@ private:
     cv::Point3d calcProjectionCameraFrame(int x, int y);
     void unitVectorToPose(const std::string& frame, cv::Point3f vec, tf2::Stamped<tf2::Transform>& trans);
     float calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform);
+	
+	//Point Cloud processing
+	ros::Subscriber pointcloud_sub;
+	Eigen::Affine3f sensorPose;
+	int init_res_scale_h, init_res_scale_w;
+	cv::Mat depth_map;
+	bool use_tunnel_estimator; //Toggle to use raw pointcloud or data from tunnel_estimator
 };
 
 }

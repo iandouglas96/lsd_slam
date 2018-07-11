@@ -173,6 +173,11 @@ void SlamSystem::setVisualization(Output3DWrapper* outputWrapper)
 	this->outputWrapper = outputWrapper;
 }
 
+void SlamSystem::setLidarDepth(ROSImageStreamThread* lidarDepth)
+{
+	this->lidarDepth = lidarDepth;
+}
+
 void SlamSystem::mergeOptimizationOffset()
 {
 	// update all vertices that are in the graph!
@@ -470,6 +475,7 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	}
 
 	// propagate & make new.
+	//map->setLidarDepth(lidarDepth);
 	map->createKeyFrame(newKeyframeCandidate.get());
 
 	if(printPropagationStatistics)

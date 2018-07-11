@@ -69,7 +69,7 @@ ROSOutput3DWrapper::~ROSOutput3DWrapper()
 
 void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 {
-	printf("Outputting PC to visualizer\n");
+	//printf("Outputting PC to visualizer\n");
 
 	lsd_slam_viewer::keyframeMsg fMsg;
 
