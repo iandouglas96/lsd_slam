@@ -40,7 +40,7 @@ bool dumpMap = false;
 bool doFullReConstraintTrack = false;
 
 // dyn config
-bool printPropagationStatistics = false;
+bool printPropagationStatistics = true;
 bool printFillHolesStatistics = false;
 bool printObserveStatistics = false;
 bool printObservePurgeStatistics = false;

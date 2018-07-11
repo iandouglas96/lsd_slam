@@ -87,6 +87,8 @@ bool ROSImageStreamThread::depthReady()
 	return haveDepthMap;
 }
 
+
+
 float ROSImageStreamThread::getDepth(int x, int y)
 {
     if (this->tunnel_radius > 0 && haveCalib && use_tunnel_estimator) {
@@ -101,8 +103,12 @@ float ROSImageStreamThread::getDepth(int x, int y)
 
 		this->unitVectorToPose("cam_top_left", cam_pt, pose);
         return this->calcDistance(pose, this->top_left_transform);
-    } else if (haveDepthMap) {
-		return depth_map.at<float>(y,x);
+    } else if (haveDepthMap && haveCalib) {
+		cv::Point3d vec = this->calcProjectionCameraFrame(x,y);
+		cv::Point3d vec_c = this->calcProjectionCameraFrame(width_/2,height_/2);
+		
+		//ROS_INFO("%f, %f, %f", vec.x, vec.y, vec.z);
+		return depth_map.at<float>(y,x)*vec.dot(vec_c);
 	}
     return -1;
 }
@@ -317,8 +323,12 @@ void ROSImageStreamThread::infoCb(const sensor_msgs::CameraInfoConstPtr info)
 		cx_ = info->P[2];
 		cy_ = info->P[6];
 
+		this->cam_intrinsics = cv::Matx33d(fx_,0,cx_,0,fy_,cy_,0,0,1);
+
 		width_ = info->width;
 		height_ = info->height;
+
+		haveCalib = true;
 
 		printf("Received ROS Camera Calibration: fx: %f, fy: %f, cx: %f, cy: %f @ %dx%d\n",fx_,fy_,cx_,cy_,width_,height_);
 	}

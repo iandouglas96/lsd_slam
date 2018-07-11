@@ -475,8 +475,10 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	}
 
 	// propagate & make new.
-	//map->setLidarDepth(lidarDepth);
+	printf("new keyframe\n");
+	map->setLidarDepth(lidarDepth);
 	map->createKeyFrame(newKeyframeCandidate.get());
+	printf("keyframe created\n");
 
 	if(printPropagationStatistics)
 	{
@@ -574,6 +576,7 @@ bool SlamSystem::updateKeyframe()
 		if(enablePrintDebugInfo && printThreadingInfo)
 			printf("MAPPING %d on %d to %d (%d frames)\n", currentKeyFrame->id(), references.front()->id(), references.back()->id(), (int)references.size());
 
+		//map->setLidarDepth(lidarDepth);
 		map->updateKeyframe(references);
 
 		popped->clear_refPixelWasGood();
