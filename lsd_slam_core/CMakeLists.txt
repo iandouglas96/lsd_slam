@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   rosbag
   tf2_geometry_msgs
   tf2_ros
+  lsd_slam_viewer
 )
 
 find_package(Eigen REQUIRED)
@@ -118,17 +119,20 @@ link_directories(${PCL_LIBRARY_DIRS})
 
 # build shared library.
 add_library(lsdslam SHARED ${SOURCE_FILES})
+add_dependencies(lsdslam ${catkin_EXPORTED_TARGETS})
 target_link_libraries(lsdslam ${FABMAP_LIB} ${G2O_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 #rosbuild_link_boost(lsdslam thread)
 
 
 # build live ros node
 add_executable(live_slam src/main_live_odometry.cpp)
+add_dependencies(live_slam ${catkin_EXPORTED_TARGETS})
 target_link_libraries(live_slam lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES} X11)
 
 
 # build image node
 add_executable(dataset src/main_on_images.cpp)
+add_dependencies(dataset ${catkin_EXPORTED_TARGETS})
 target_link_libraries(dataset lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
 
 # TODO add INSTALL

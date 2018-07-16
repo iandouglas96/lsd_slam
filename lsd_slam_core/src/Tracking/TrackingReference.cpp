@@ -130,11 +130,14 @@ void TrackingReference::makePointCloud(int level)
 		{
 			int idx = x + y*w;
 
-			if(pyrIdepthVarSource[idx] <= 0 || pyrIdepthSource[idx] == 0) continue;
+			if(pyrIdepthVarSource[idx] <= 0 || pyrIdepthSource[idx] <= 0 || pyrColorSource[idx] <= 0) {
+				*colorAndVarDataPT = Eigen::Vector2f(0, 0);
+				continue;
+			} 
 
 			*posDataPT = (1.0f / pyrIdepthSource[idx]) * Eigen::Vector3f(fxInvLevel*x+cxInvLevel,fyInvLevel*y+cyInvLevel,1);
-			*gradDataPT = pyrGradSource[idx].head<2>();
 			*colorAndVarDataPT = Eigen::Vector2f(pyrColorSource[idx], pyrIdepthVarSource[idx]);
+			*gradDataPT = pyrGradSource[idx].head<2>();
 			*idxPT = idx;
 
 			posDataPT++;

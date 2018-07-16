@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+
+<launch>
+  <include file="$(find flea3)/launch/single_node.launch">
+    <arg name="device" value="16061374"/>
+  </include>
+
+  <node pkg="image_proc" type="image_proc" name="image_proc" output="screen">
+    <remap from="image_raw" to="/pg_16061374/image_raw"/>
+    <remap from="camera_info" to="/pg_16061374/camera_info"/>
+    <remap from="image_rect" to="/pg_16061374/image_rect"/>
+  </node>
+
+  <include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>
+
+  <!-- Record everything -->
+  <node pkg="rosbag" type="record" name="rosbag_record"
+    args="record -o /media/ian/ExtHDD/InspectionData/desk_img_lidar /velodyne_point_cloud /pg_16061374/image_rect /pg_16061374/camera_info"
+  />
+</launch>

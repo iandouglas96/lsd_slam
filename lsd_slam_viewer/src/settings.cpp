@@ -33,8 +33,8 @@ bool showConstraints = true;
 bool showCurrentCamera = true;
 bool showCurrentPointcloud = true;
 
-float scaledDepthVarTH = 1;
-float absDepthVarTH = 1;
+float scaledDepthVarTH = 20;
+float absDepthVarTH = 3;
 int minNearSupport = 5;
 int cutFirstNKf = 5;
 int sparsifyFactor = 1;

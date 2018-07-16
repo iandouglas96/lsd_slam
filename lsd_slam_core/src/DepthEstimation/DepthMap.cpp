@@ -141,8 +141,8 @@ void DepthMap::observeDepthRow(int yMin, int yMax, RunningStats* stats)
 
 			bool success;
 			if(!hasHypothesis)
-				success = true;
-				//success = observeDepthCreate(x, y, idx, stats);
+				//success = true;
+				success = observeDepthCreate(x, y, idx, stats);
 			else
 				success = observeDepthUpdate(x, y, idx, keyFrameMaxGradBuf, stats);
 

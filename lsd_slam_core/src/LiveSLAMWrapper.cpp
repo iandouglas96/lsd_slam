@@ -146,7 +146,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 	{
 		//Spin until depth map loaded
 		while (((ROSImageStreamThread*)imageStream)->depthReady() == false) {
-			ROS_INFO("Waiting for depth map...");
+			//ROS_INFO("Waiting for depth map...");
 		}
 
 		float depth[width*height];

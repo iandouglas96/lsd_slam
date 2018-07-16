@@ -547,10 +547,9 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 
 	if (valid)
 	{
-		K_ = cv::getOptimalNewCameraMatrix(originalK_, distCoeffs, cv::Size(in_width, in_height), (outputCalibration == -2) ? 1 : 0, cv::Size(out_width, out_height), nullptr, false);
-		
+		K_ = cv::Mat(originalK_);
 		cv::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), K_,
-				cv::Size(out_width, out_height), CV_16SC2, map1, map2);	
+				cv::Size(in_width, in_height), CV_16SC2, map1, map2);	
 	}
 	
 	originalK_ = originalK_.t();
@@ -578,6 +577,7 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 		undst = undst(roi);
 	}
 	cv::equalizeHist(undst, undst);
+	cv::resize(undst,undst,cv::Size(out_width, out_height));//resize image
 	undst.copyTo(result);
 }
 
