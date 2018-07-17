@@ -67,6 +67,7 @@ LiveSLAMWrapper::LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper*
 	monoOdometry = new SlamSystem(width, height, K_sophus, doSlam);
 
 	monoOdometry->setVisualization(outputWrapper);
+	monoOdometry->setLidarDepth(((ROSImageStreamThread*)imageStream));
 
 	imageSeqNumber = 0;
 }
@@ -143,6 +144,11 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 	// need to initialize
 	if(!isInitialized)
 	{
+		//Spin until depth map loaded
+		while (((ROSImageStreamThread*)imageStream)->depthReady() == false) {
+			//ROS_INFO("Waiting for depth map...");
+		}
+
 		float depth[width*height];
 		for (int x=0; x<width; x++) {
 			for (int y=0; y<height; y++) {
@@ -199,7 +205,7 @@ void LiveSLAMWrapper::resetAll()
 		K << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0;
 		monoOdometry = new SlamSystem(width,height,K, doSlam);
 		monoOdometry->setVisualization(outputWrapper);
-
+		monoOdometry->setLidarDepth(((ROSImageStreamThread*)imageStream));
 	}
 	imageSeqNumber = 0;
 	isInitialized = false;

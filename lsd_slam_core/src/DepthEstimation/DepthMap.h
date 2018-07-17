@@ -24,6 +24,7 @@
 #include "util/settings.h"
 #include "util/IndexThreadReduce.h"
 #include "util/SophusUtil.h"
+#include "IOWrapper/ROS/ROSImageStreamThread.h"
 
 
 
@@ -83,6 +84,8 @@ public:
 
 	void setFromExistingKF(Frame* kf);
 
+	void setLidarDepth(ROSImageStreamThread* depth);
+
 	void addTimingSample();
 	float msUpdate, msCreate, msFinalize;
 	float msObserve, msRegularize, msPropagate, msFillHoles, msSetDepth;
@@ -122,6 +125,7 @@ private:
 	// for internal depth tracking, their memory is managed (created & deleted) by this object.
 	DepthMapPixelHypothesis* otherDepthMap;
 	DepthMapPixelHypothesis* currentDepthMap;
+	DepthMapPixelHypothesis* lidarDepthMap;
 	int* validityIntegralBuffer;
 
 	

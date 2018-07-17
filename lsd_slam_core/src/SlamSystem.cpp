@@ -29,7 +29,7 @@
 #include "util/globalFuncs.h"
 #include "GlobalMapping/KeyFrameGraph.h"
 #include "GlobalMapping/TrackableKeyFrameSearch.h"
-#include "GlobalMapping/g2oTypeSim3Sophus.h"
+#include "GlobalMapping/g2oTypeSE3Sophus.h"
 #include "IOWrapper/ImageDisplay.h"
 #include "IOWrapper/Output3DWrapper.h"
 #include <g2o/core/robust_kernel_impl.h>
@@ -86,7 +86,7 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 	if(SLAMEnabled)
 	{
 		trackableKeyFrameSearch = new TrackableKeyFrameSearch(keyFrameGraph,w,h,K);
-		constraintTracker = new Sim3Tracker(w,h,K);
+		//constraintTracker = new Sim3Tracker(w,h,K);
 		constraintSE3Tracker = new SE3Tracker(w,h,K);
 		newKFTrackingReference = new TrackingReference();
 		candidateTrackingReference = new TrackingReference();
@@ -95,7 +95,7 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 	{
 		constraintSE3Tracker = 0;
 		trackableKeyFrameSearch = 0;
-		constraintTracker = 0;
+		//constraintTracker = 0;
 		newKFTrackingReference = 0;
 		candidateTrackingReference = 0;
 	}
@@ -142,7 +142,7 @@ SlamSystem::~SlamSystem()
 	printf("DONE waiting for SlamSystem's threads to exit\n");
 
 	if(trackableKeyFrameSearch != 0) delete trackableKeyFrameSearch;
-	if(constraintTracker != 0) delete constraintTracker;
+	//if(constraintTracker != 0) delete constraintTracker;
 	if(constraintSE3Tracker != 0) delete constraintSE3Tracker;
 	if(newKFTrackingReference != 0) delete newKFTrackingReference;
 	if(candidateTrackingReference != 0) delete candidateTrackingReference;
@@ -171,6 +171,11 @@ SlamSystem::~SlamSystem()
 void SlamSystem::setVisualization(Output3DWrapper* outputWrapper)
 {
 	this->outputWrapper = outputWrapper;
+}
+
+void SlamSystem::setLidarDepth(ROSImageStreamThread* lidarDepth)
+{
+	this->lidarDepth = lidarDepth;
 }
 
 void SlamSystem::mergeOptimizationOffset()
@@ -470,7 +475,10 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	}
 
 	// propagate & make new.
+	printf("new keyframe\n");
+	map->setLidarDepth(lidarDepth);
 	map->createKeyFrame(newKeyframeCandidate.get());
+	printf("keyframe created\n");
 
 	if(printPropagationStatistics)
 	{
@@ -568,6 +576,7 @@ bool SlamSystem::updateKeyframe()
 		if(enablePrintDebugInfo && printThreadingInfo)
 			printf("MAPPING %d on %d to %d (%d frames)\n", currentKeyFrame->id(), references.front()->id(), references.back()->id(), (int)references.size());
 
+		//map->setLidarDepth(lidarDepth);
 		map->updateKeyframe(references);
 
 		popped->clear_refPixelWasGood();
@@ -659,7 +668,7 @@ void SlamSystem::debugDisplayDepthMap()
 	map->debugPlotDepthMap();
 	double scale = 1;
 	if(currentKeyFrame != 0 && currentKeyFrame != 0)
-		scale = currentKeyFrame->getScaledCamToWorld().scale();
+		scale = 1;
 	// debug plot depthmap
 	char buf1[200];
 	char buf2[200];
@@ -923,7 +932,7 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 
 
 	poseConsistencyMutex.lock_shared();
-	SE3 frameToReference_initialEstimate = se3FromSim3(
+	SE3 frameToReference_initialEstimate = (
 			trackingReferencePose->getCamToWorld().inverse() * keyFrameGraph->allFramePoses.back()->getCamToWorld());
 	poseConsistencyMutex.unlock_shared();
 
@@ -1043,60 +1052,46 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 }
 
 
-float SlamSystem::tryTrackSim3(
+float SlamSystem::tryTrackSE3(
 		TrackingReference* A, TrackingReference* B,
 		int lvlStart, int lvlEnd,
 		bool useSSE,
-		Sim3 &AtoB, Sim3 &BtoA,
+		SE3 &AtoB, SE3 &BtoA,
 		KFConstraintStruct* e1, KFConstraintStruct* e2 )
 {
-	BtoA = constraintTracker->trackFrameSim3(
+	BtoA = constraintSE3Tracker->trackFrame(
 			A,
 			B->keyframe,
-			BtoA,
-			lvlStart,lvlEnd);
-	Matrix7x7 BtoAInfo = constraintTracker->lastSim3Hessian;
-	float BtoA_meanResidual = constraintTracker->lastResidual;
-	float BtoA_meanDResidual = constraintTracker->lastDepthResidual;
-	float BtoA_meanPResidual = constraintTracker->lastPhotometricResidual;
-	float BtoA_usage = constraintTracker->pointUsage;
+			BtoA);
+	Matrix6x6 BtoAInfo = constraintSE3Tracker->lastSE3Hessian;
+	float BtoA_meanResidual = constraintSE3Tracker->lastResidual;
+	float BtoA_usage = constraintSE3Tracker->pointUsage;
 
 
-	if (constraintTracker->diverged ||
-		BtoA.scale() > 1 / Sophus::SophusConstants<sophusType>::epsilon() ||
-		BtoA.scale() < Sophus::SophusConstants<sophusType>::epsilon() ||
-		BtoAInfo(0,0) == 0 ||
-		BtoAInfo(6,6) == 0)
+	if (constraintSE3Tracker->diverged)
 	{
 		return 1e20;
 	}
 
 
-	AtoB = constraintTracker->trackFrameSim3(
+	AtoB = constraintSE3Tracker->trackFrame(
 			B,
 			A->keyframe,
-			AtoB,
-			lvlStart,lvlEnd);
-	Matrix7x7 AtoBInfo = constraintTracker->lastSim3Hessian;
-	float AtoB_meanResidual = constraintTracker->lastResidual;
-	float AtoB_meanDResidual = constraintTracker->lastDepthResidual;
-	float AtoB_meanPResidual = constraintTracker->lastPhotometricResidual;
-	float AtoB_usage = constraintTracker->pointUsage;
+			AtoB);
+	Matrix6x6 AtoBInfo = constraintSE3Tracker->lastSE3Hessian;
+	float AtoB_meanResidual = constraintSE3Tracker->lastResidual;
+	float AtoB_usage = constraintSE3Tracker->pointUsage;
 
 
-	if (constraintTracker->diverged ||
-		AtoB.scale() > 1 / Sophus::SophusConstants<sophusType>::epsilon() ||
-		AtoB.scale() < Sophus::SophusConstants<sophusType>::epsilon() ||
-		AtoBInfo(0,0) == 0 ||
-		AtoBInfo(6,6) == 0)
+	if (constraintSE3Tracker->diverged)
 	{
 		return 1e20;
 	}
 
 	// Propagate uncertainty (with d(a * b) / d(b) = Adj_a) and calculate Mahalanobis norm
-	Matrix7x7 datimesb_db = AtoB.cast<float>().Adj();
-	Matrix7x7 diffHesse = (AtoBInfo.inverse() + datimesb_db * BtoAInfo.inverse() * datimesb_db.transpose()).inverse();
-	Vector7 diff = (AtoB * BtoA).log().cast<float>();
+	Matrix6x6 datimesb_db = AtoB.cast<float>().Adj();
+	Matrix6x6 diffHesse = (AtoBInfo.inverse() + datimesb_db * BtoAInfo.inverse() * datimesb_db.transpose()).inverse();
+	Vector6 diff = (AtoB * BtoA).log().cast<float>();
 
 
 	float reciprocalConsistency = (diffHesse * diff).dot(diff);
@@ -1109,8 +1104,6 @@ float SlamSystem::tryTrackSim3(
 		e1->secondToFirst = BtoA;
 		e1->information = BtoAInfo.cast<double>();
 		e1->meanResidual = BtoA_meanResidual;
-		e1->meanResidualD = BtoA_meanDResidual;
-		e1->meanResidualP = BtoA_meanPResidual;
 		e1->usage = BtoA_usage;
 
 		e2->firstFrame = B->keyframe;
@@ -1118,8 +1111,6 @@ float SlamSystem::tryTrackSim3(
 		e2->secondToFirst = AtoB;
 		e2->information = AtoBInfo.cast<double>();
 		e2->meanResidual = AtoB_meanResidual;
-		e2->meanResidualD = AtoB_meanDResidual;
-		e2->meanResidualP = AtoB_meanPResidual;
 		e2->usage = AtoB_usage;
 
 		e1->reciprocalConsistency = e2->reciprocalConsistency = reciprocalConsistency;
@@ -1132,15 +1123,15 @@ float SlamSystem::tryTrackSim3(
 void SlamSystem::testConstraint(
 		Frame* candidate,
 		KFConstraintStruct* &e1_out, KFConstraintStruct* &e2_out,
-		Sim3 candidateToFrame_initialEstimate,
+		SE3 candidateToFrame_initialEstimate,
 		float strictness)
 {
 	candidateTrackingReference->importFrame(candidate);
 
-	Sim3 FtoC = candidateToFrame_initialEstimate.inverse(), CtoF = candidateToFrame_initialEstimate;
-	Matrix7x7 FtoCInfo, CtoFInfo;
+	SE3 FtoC = candidateToFrame_initialEstimate.inverse(), CtoF = candidateToFrame_initialEstimate;
+	Matrix6x6 FtoCInfo, CtoFInfo;
 
-	float err_level3 = tryTrackSim3(
+	float err_level3 = tryTrackSE3(
 			newKFTrackingReference, candidateTrackingReference,	// A = frame; b = candidate
 			SIM3TRACKING_MAX_LEVEL-1, 3,
 			USESSE,
@@ -1156,11 +1147,11 @@ void SlamSystem::testConstraint(
 
 		e1_out = e2_out = 0;
 
-		newKFTrackingReference->keyframe->trackingFailed.insert(std::pair<Frame*,Sim3>(candidate, candidateToFrame_initialEstimate));
+		newKFTrackingReference->keyframe->trackingFailed.insert(std::pair<Frame*,SE3>(candidate, candidateToFrame_initialEstimate));
 		return;
 	}
 
-	float err_level2 = tryTrackSim3(
+	float err_level2 = tryTrackSE3(
 			newKFTrackingReference, candidateTrackingReference,	// A = frame; b = candidate
 			2, 2,
 			USESSE,
@@ -1175,7 +1166,7 @@ void SlamSystem::testConstraint(
 				sqrtf(err_level3), sqrtf(err_level2));
 
 		e1_out = e2_out = 0;
-		newKFTrackingReference->keyframe->trackingFailed.insert(std::pair<Frame*,Sim3>(candidate, candidateToFrame_initialEstimate));
+		newKFTrackingReference->keyframe->trackingFailed.insert(std::pair<Frame*,SE3>(candidate, candidateToFrame_initialEstimate));
 		return;
 	}
 
@@ -1183,7 +1174,7 @@ void SlamSystem::testConstraint(
 	e2_out = new KFConstraintStruct();
 
 
-	float err_level1 = tryTrackSim3(
+	float err_level1 = tryTrackSE3(
 			newKFTrackingReference, candidateTrackingReference,	// A = frame; b = candidate
 			1, 1,
 			USESSE,
@@ -1200,7 +1191,7 @@ void SlamSystem::testConstraint(
 		delete e1_out;
 		delete e2_out;
 		e1_out = e2_out = 0;
-		newKFTrackingReference->keyframe->trackingFailed.insert(std::pair<Frame*,Sim3>(candidate, candidateToFrame_initialEstimate));
+		newKFTrackingReference->keyframe->trackingFailed.insert(std::pair<Frame*,SE3>(candidate, candidateToFrame_initialEstimate));
 		return;
 	}
 
@@ -1241,7 +1232,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 	Frame* fabMapResult = 0;
 	std::unordered_set<Frame*, std::hash<Frame*>, std::equal_to<Frame*>,
 		Eigen::aligned_allocator< Frame* > > candidates = trackableKeyFrameSearch->findCandidates(newKeyFrame, fabMapResult, useFABMAP, closeCandidatesTH);
-	std::map< Frame*, Sim3, std::less<Frame*>, Eigen::aligned_allocator<std::pair<Frame*, Sim3> > > candidateToFrame_initialEstimateMap;
+	std::map< Frame*, SE3, std::less<Frame*>, Eigen::aligned_allocator<std::pair<Frame*, SE3> > > candidateToFrame_initialEstimateMap;
 
 
 	// erase the ones that are already neighbours.
@@ -1260,7 +1251,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 	poseConsistencyMutex.lock_shared();
 	for (Frame* candidate : candidates)
 	{
-		Sim3 candidateToFrame_initialEstimate = newKeyFrame->getScaledCamToWorld().inverse() * candidate->getScaledCamToWorld();
+		SE3 candidateToFrame_initialEstimate = newKeyFrame->getScaledCamToWorld().inverse() * candidate->getScaledCamToWorld();
 		candidateToFrame_initialEstimateMap[candidate] = candidateToFrame_initialEstimate;
 	}
 
@@ -1296,13 +1287,13 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 		if(candidate->idxInKeyframes < INITIALIZATION_PHASE_COUNT)
 			continue;
 
-		SE3 c2f_init = se3FromSim3(candidateToFrame_initialEstimateMap[candidate].inverse()).inverse();
+		SE3 c2f_init = (candidateToFrame_initialEstimateMap[candidate].inverse()).inverse();
 		c2f_init.so3() = c2f_init.so3() * disturbance;
 		SE3 c2f = constraintSE3Tracker->trackFrameOnPermaref(candidate, newKeyFrame, c2f_init);
 		if(!constraintSE3Tracker->trackingWasGood) {closeFailed++; continue;}
 
 
-		SE3 f2c_init = se3FromSim3(candidateToFrame_initialEstimateMap[candidate]).inverse();
+		SE3 f2c_init = (candidateToFrame_initialEstimateMap[candidate]).inverse();
 		f2c_init.so3() = disturbance * f2c_init.so3();
 		SE3 f2c = constraintSE3Tracker->trackFrameOnPermaref(newKeyFrame, candidate, f2c_init);
 		if(!constraintSE3Tracker->trackingWasGood) {closeFailed++; continue;}
@@ -1356,7 +1347,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 		auto range = newKeyFrame->trackingFailed.equal_range(*c);
 
 		bool skip = false;
-		Sim3 f2c = candidateToFrame_initialEstimateMap[*c].inverse();
+		SE3 f2c = candidateToFrame_initialEstimateMap[*c].inverse();
 		for (auto it = range.first; it != range.second; ++it)
 		{
 			if((f2c * it->second).log().norm() < 0.1)
@@ -1505,7 +1496,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 
 		testConstraint(
 				candidate, e1, e2,
-				Sim3(),
+				SE3(),
 				loopclosureStrictness);
 
 		if(enablePrintDebugInfo && printConstraintSearchInfo)
@@ -1547,15 +1538,8 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 			constraints.back()->firstFrame = newKeyFrame;
 			constraints.back()->secondFrame = newKeyFrame->getTrackingParent();
 			constraints.back()->secondToFirst = constraints.back()->firstFrame->getScaledCamToWorld().inverse() * constraints.back()->secondFrame->getScaledCamToWorld();
-			constraints.back()->information  <<
-					0.8098,-0.1507,-0.0557, 0.1211, 0.7657, 0.0120, 0,
-					-0.1507, 2.1724,-0.1103,-1.9279,-0.1182, 0.1943, 0,
-					-0.0557,-0.1103, 0.2643,-0.0021,-0.0657,-0.0028, 0.0304,
-					 0.1211,-1.9279,-0.0021, 2.3110, 0.1039,-0.0934, 0.0005,
-					 0.7657,-0.1182,-0.0657, 0.1039, 1.0545, 0.0743,-0.0028,
-					 0.0120, 0.1943,-0.0028,-0.0934, 0.0743, 0.4511, 0,
-					0,0, 0.0304, 0.0005,-0.0028, 0, 0.0228;
-			constraints.back()->information *= (1e9/(downweightFac*downweightFac));
+			constraints.back()->information.setIdentity();
+			//constraints.back()->information *= (1e9/(downweightFac*downweightFac));
 
 			constraints.back()->robustKernel = new g2o::RobustKernelHuber();
 			constraints.back()->robustKernel->setDelta(kernelDelta);
@@ -1628,9 +1612,9 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 
 
 		// get change from last optimization
-		Sim3 a = keyFrameGraph->keyframesAll[i]->pose->graphVertex->estimate();
-		Sim3 b = keyFrameGraph->keyframesAll[i]->getScaledCamToWorld();
-		Sophus::Vector7f diff = (a*b.inverse()).log().cast<float>();
+		SE3 a = keyFrameGraph->keyframesAll[i]->pose->graphVertex->estimate();
+		SE3 b = keyFrameGraph->keyframesAll[i]->getScaledCamToWorld();
+		Sophus::Vector6f diff = (a*b.inverse()).log().cast<float>();
 
 
 		for(int j=0;j<7;j++)
@@ -1648,7 +1632,7 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 		// add error
 		for(auto edge : keyFrameGraph->keyframesAll[i]->pose->graphVertex->edges())
 		{
-			keyFrameGraph->keyframesAll[i]->edgeErrorSum += ((EdgeSim3*)(edge))->chi2();
+			keyFrameGraph->keyframesAll[i]->edgeErrorSum += ((EdgeSE3*)(edge))->chi2();
 			keyFrameGraph->keyframesAll[i]->edgesNum++;
 		}
 	}
@@ -1686,7 +1670,7 @@ SE3 SlamSystem::getCurrentPoseEstimate()
 	SE3 camToWorld = SE3();
 	keyFrameGraph->allFramePosesMutex.lock_shared();
 	if(keyFrameGraph->allFramePoses.size() > 0)
-		camToWorld = se3FromSim3(keyFrameGraph->allFramePoses.back()->getCamToWorld());
+		camToWorld = (keyFrameGraph->allFramePoses.back()->getCamToWorld());
 	keyFrameGraph->allFramePosesMutex.unlock_shared();
 	return camToWorld;
 }

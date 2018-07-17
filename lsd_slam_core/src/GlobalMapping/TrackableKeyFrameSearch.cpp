@@ -67,7 +67,7 @@ std::vector<TrackableKFStruct, Eigen::aligned_allocator<TrackableKFStruct> > Tra
 
 	float distFacReciprocal = 1;
 	if(checkBothScales)
-		distFacReciprocal = frame->meanIdepth / frame->getScaledCamToWorld().scale();
+		distFacReciprocal = frame->meanIdepth;
 
 	// for each frame, calculate the rough score, consisting of pose, scale and angle overlap.
 	graph->keyframesAllMutex.lock_shared();
@@ -76,7 +76,7 @@ std::vector<TrackableKFStruct, Eigen::aligned_allocator<TrackableKFStruct> > Tra
 		Eigen::Vector3d otherPos = graph->keyframesAll[i]->getScaledCamToWorld().translation();
 
 		// get distance between the frames, scaled to fit the potential reference frame.
-		float distFac = graph->keyframesAll[i]->meanIdepth / graph->keyframesAll[i]->getScaledCamToWorld().scale();
+		float distFac = graph->keyframesAll[i]->meanIdepth;
 		if(checkBothScales && distFacReciprocal < distFac) distFac = distFacReciprocal;
 		Eigen::Vector3d dist = (pos - otherPos) * distFac;
 		float dNorm2 = dist.dot(dist);
@@ -88,7 +88,7 @@ std::vector<TrackableKFStruct, Eigen::aligned_allocator<TrackableKFStruct> > Tra
 
 		potentialReferenceFrames.push_back(TrackableKFStruct());
 		potentialReferenceFrames.back().ref = graph->keyframesAll[i];
-		potentialReferenceFrames.back().refToFrame = se3FromSim3(graph->keyframesAll[i]->getScaledCamToWorld().inverse() * frame->getScaledCamToWorld()).inverse();
+		potentialReferenceFrames.back().refToFrame = (graph->keyframesAll[i]->getScaledCamToWorld().inverse() * frame->getScaledCamToWorld()).inverse();
 		potentialReferenceFrames.back().dist = dNorm2;
 		potentialReferenceFrames.back().angle = dirDotProd;
 	}

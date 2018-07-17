@@ -468,6 +468,7 @@ void Sim3Tracker::calcSim3Buffers(
 	const float* 			frame_idepth = frame->idepth(level);
 	const float* 			frame_idepthVar = frame->idepthVar(level);
 	const Eigen::Vector4f* 	frame_intensityAndGradients = frame->gradients(level);
+	const float* frame_image = frame->image(level);
 
 
 	float sxx=0,syy=0,sx=0,sy=0,sw=0;
@@ -477,6 +478,12 @@ void Sim3Tracker::calcSim3Buffers(
 	int idx=0;
 	for(;refPoint<refPoint_max; refPoint++, refGrad++, refColVar++)
 	{
+		//Ignore black pixels (mask out)
+		if ((*refColVar)[0] <= 0) {
+			//std::cout << "skipping...\n";
+			continue;
+		}
+
 		Eigen::Vector3f Wxp = rotMat * (*refPoint) + transVec;
 		float u_new = (Wxp[0]/Wxp[2])*fx_l + cx_l;
 		float v_new = (Wxp[1]/Wxp[2])*fy_l + cy_l;
@@ -485,6 +492,13 @@ void Sim3Tracker::calcSim3Buffers(
 		// (inverse test to exclude NANs)
 		if(!(u_new > 1 && v_new > 1 && u_new < w-2 && v_new < h-2))
 			continue;
+
+		int uv_new = int(u_new)+int(v_new)*w;
+		//Ignore black pixels on new frame as well
+		if (frame_image[uv_new] <= 0 || frame_image[uv_new+1] <= 0 || frame_image[uv_new+1+w] <= 0 || frame_image[uv_new+w] <= 0) {
+			//std::cout << "skipping...\n";
+			continue;
+		}
 
 		*(buf_warped_x+idx) = Wxp(0);
 		*(buf_warped_y+idx) = Wxp(1);

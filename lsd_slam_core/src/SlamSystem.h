@@ -26,6 +26,7 @@
 #include <boost/thread/locks.hpp>
 #include "util/settings.h"
 #include "IOWrapper/Timestamp.h"
+#include "IOWrapper/ROS/ROSImageStreamThread.h"
 #include "opencv2/core/core.hpp"
 
 #include "util/SophusUtil.h"
@@ -98,6 +99,8 @@ public:
 	/** Sets the visualization where point clouds and camera poses will be sent to. */
 	void setVisualization(Output3DWrapper* outputWrapper);
 
+	void setLidarDepth(ROSImageStreamThread* lidarDepth);
+
 	void requestDepthMapScreenshot(const std::string& filename);
 
 	bool doMappingIteration();
@@ -139,7 +142,6 @@ private:
 
 	// ============= EXCLUSIVELY FIND-CONSTRAINT THREAD (+ init) =============
 	TrackableKeyFrameSearch* trackableKeyFrameSearch;
-	Sim3Tracker* constraintTracker;
 	SE3Tracker* constraintSE3Tracker;
 	TrackingReference* newKFTrackingReference;
 	TrackingReference* candidateTrackingReference;
@@ -170,7 +172,7 @@ private:
 	// Individual / no locking
 	Output3DWrapper* outputWrapper;	// no lock required
 	KeyFrameGraph* keyFrameGraph;	// has own locks
-
+	ROSImageStreamThread* lidarDepth;
 
 
 	// Tracking: if (!create) set candidate, set create.
@@ -254,17 +256,17 @@ private:
 
 	void constraintSearchThreadLoop();
 	/** Calculates a scale independent error norm for reciprocal tracking results a and b with associated information matrices. */
-	float tryTrackSim3(
+	float tryTrackSE3(
 			TrackingReference* A, TrackingReference* B,
 			int lvlStart, int lvlEnd,
 			bool useSSE,
-			Sim3 &AtoB, Sim3 &BtoA,
+			SE3 &AtoB, SE3 &BtoA,
 			KFConstraintStruct* e1=0, KFConstraintStruct* e2=0);
 
 	void testConstraint(
 			Frame* candidate,
 			KFConstraintStruct* &e1_out, KFConstraintStruct* &e2_out,
-			Sim3 candidateToFrame_initialEstimate,
+			SE3 candidateToFrame_initialEstimate,
 			float strictness);
 
 	void optimizationThreadLoop();

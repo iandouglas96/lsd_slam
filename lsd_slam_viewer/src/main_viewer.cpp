@@ -89,7 +89,6 @@ void rosThreadLoop( int argc, char** argv )
 
 	//glutInit(&argc, argv);
 
-	ros::init(argc, argv, "viewer");
 	ROS_INFO("lsd_slam_viewer started");
 
 	dynamic_reconfigure::Server<lsd_slam_viewer::LSDSLAMViewerParamsConfig> srv;
@@ -155,6 +154,8 @@ int main( int argc, char** argv )
 
 
 	printf("Started QApplication thread\n");
+
+	ros::init(argc, argv, "viewer");
 
 	// Read command lines arguments.
 	QApplication application(argc,argv);

@@ -35,8 +35,8 @@ namespace lsd_slam
 
 class Frame;
 class KeyFrameGraph;
-class VertexSim3;
-class EdgeSim3;
+class VertexSE3;
+class EdgeSE3;
 class FramePoseStruct;
 
 struct KFConstraintStruct
@@ -62,10 +62,10 @@ struct KFConstraintStruct
 
 	Frame* firstFrame;
 	Frame* secondFrame;
-	Sophus::Sim3d secondToFirst;
-	Eigen::Matrix<double, 7, 7> information;
+	Sophus::SE3d secondToFirst;
+	Eigen::Matrix<double, 6, 6> information;
 	g2o::RobustKernel* robustKernel;
-	EdgeSim3* edge;
+	EdgeSE3* edge;
 
 	float usage;
 	float meanResidualD;

@@ -27,6 +27,10 @@
 #include "cv_bridge/cv_bridge.h"
 #include "util/settings.h"
 #include <Eigen/Dense>
+#undef USE_ROS //Make PCL
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/range_image/range_image_planar.h>
 
 #include <iostream>
 #include <fstream>
@@ -40,11 +44,28 @@ using namespace cv;
 
 ROSImageStreamThread::ROSImageStreamThread()
 {
+	//load params
+	nh_.param("/lsd_slam/init_res_scale_h", init_res_scale_h, 10);
+	nh_.param("/lsd_slam/init_res_scale_w", init_res_scale_w, 2);
+	nh_.param("/lsd_slam/use_tunnel_estimator", use_tunnel_estimator, false);
+
+	ROS_INFO("Using tunnel estimator: %d", use_tunnel_estimator);
+
+	//Set up lidar and camera calibration
+	//This should really not be hardcoded
+    sensorPose.translation() << -0.0579167, 0.0585683, 0.0; //Translation matrix
+    sensorPose.linear() <<  0.999899,   0.0136208,  0.00416754,
+                            -0.0138209, 0.998525,   0.0525113,
+                            -0.00344614,-0.0525636, 0.998612; //Rotation matrix
+    sensorPose.linear() = sensorPose.linear().transpose().eval(); 
+
+	// wait for cam calib
+	width_ = height_ = 0;
+
 	// subscribe
 	vid_channel = nh_.resolveName("image");
-	vid_sub          = nh_.subscribe(vid_channel,1, &ROSImageStreamThread::vidCb, this);
-
-	// subscribe to tunnel radius
+	vid_sub     = nh_.subscribe(vid_channel,1, &ROSImageStreamThread::vidCb, this);
+	pointcloud_sub = nh_.subscribe(nh_.resolveName("pointcloud"), 1, &ROSImageStreamThread::pointCloudCb, this);
 	std::string radius_channel = nh_.resolveName("local_tunnel_radius");
 	radius_sub = nh_.subscribe(radius_channel,1, &ROSImageStreamThread::radiusCb, this);
 
@@ -54,20 +75,23 @@ ROSImageStreamThread::ROSImageStreamThread()
 
     tunnel_radius = -1;
 
-	// wait for cam calib
-	width_ = height_ = 0;
-
 	// imagebuffer
 	imageBuffer = new NotifyBuffer<TimestampedMat>(8);
 	undistorter = 0;
 	lastSEQ = 0;
 
 	haveCalib = false;
+	haveDepthMap = false;
+}
+
+bool ROSImageStreamThread::depthReady()
+{
+	return haveDepthMap;
 }
 
 float ROSImageStreamThread::getDepth(int x, int y)
 {
-    if (this->tunnel_radius > 0 && haveCalib) {
+    if (this->tunnel_radius > 0 && haveCalib && use_tunnel_estimator) {
 		//Deal with cropping
 		//x += (old_width_-width_)/2;
 		//y += (old_height_-height_)/2;
@@ -79,7 +103,13 @@ float ROSImageStreamThread::getDepth(int x, int y)
 
 		this->unitVectorToPose("cam_top_left", cam_pt, pose);
         return this->calcDistance(pose, this->top_left_transform);
-    }
+    } else if (haveDepthMap && haveCalib) {
+		cv::Point3d vec = this->calcProjectionCameraFrame(x,y);
+		cv::Point3d vec_c = this->calcProjectionCameraFrame(width_/2,height_/2);
+		
+		//ROS_INFO("%f, %f, %f", vec.x, vec.y, vec.z);
+		return depth_map.at<float>(y,x)*vec.dot(vec_c);
+	}
     return -1;
 }
 
@@ -185,16 +215,11 @@ void ROSImageStreamThread::setCalibration(std::string file)
 
 		fx_ = undistorter->getK().at<double>(0, 0);
 		fy_ = undistorter->getK().at<double>(1, 1);
-		cx_ = undistorter->getK().at<double>(2, 0);
-		cy_ = undistorter->getK().at<double>(2, 1);
+		cx_ = undistorter->getK().at<double>(0, 2);
+		cy_ = undistorter->getK().at<double>(1, 2);
 
-		//undistorter takes the transpose, we undo that here
-		cv::Mat cam_intrinsics_mat = undistorter->getK().t();
-		//ROS_INFO("old camera: %f", cam_intrinsics_mat.at<double>(0,0));
-
-		double* cam_data = reinterpret_cast<double*>(cam_intrinsics_mat.data);//cast mat.data to float*
-    	this->cam_intrinsics = cv::Matx33d(cam_data);//make Matx33f
-	
+    	this->cam_intrinsics = cv::Matx33d(fx_, 0, cx_, 0, fy_, cy_, 0, 0, 1);//make Matx33f
+		std::cout << this->cam_intrinsics << "\n";
 		//ROS_INFO("camera: %f", this->cam_intrinsics(0,0));
 	}
 
@@ -213,6 +238,41 @@ void ROSImageStreamThread::operator()()
 	exit(0);
 }
 
+void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg)
+{
+	//Need camera matrix to do anything useful with data
+	if (!haveCalib) return;
+
+	ROS_INFO("Got Pointcloud...");
+
+	pcl::PointCloud<pcl::PointXYZ>::Ptr pc =
+		pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>);
+	pcl::fromROSMsg(*msg, *pc);
+
+	//ROS_INFO_STREAM(*pc << "\n");
+
+	pcl::RangeImagePlanar rangeImage;
+	
+	rangeImage.createFromPointCloudWithFixedSize(*pc, width_/init_res_scale_w, height_/init_res_scale_h,
+									cx_/init_res_scale_w, cy_/init_res_scale_h, 
+									fx_/init_res_scale_w, fy_/init_res_scale_h, 
+									sensorPose, pcl::RangeImagePlanar::LASER_FRAME);
+
+	cv::Mat image = cv::Mat(rangeImage.height, rangeImage.width, CV_32F, -1.0);
+
+	for (int y=0; y<rangeImage.height; y+=1) {
+		for (int x=0; x<rangeImage.width; x+=1) {
+			if (rangeImage.getPoint(y*rangeImage.width + x).range > 0) {
+				image.at<float>(y,x) = (rangeImage.getPoint(y*rangeImage.width + x).range);
+				//ROS_INFO("depth: %f",image.at<float>(y,x));
+			}
+		}
+	}
+
+	//std::cout << rangeImage << "\n";
+	cv::resize(image,depth_map,cv::Size(width_, height_),0,0,INTER_AREA);//resize image
+	haveDepthMap = true;
+}
 
 void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 {
@@ -238,9 +298,34 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 	{
 		assert(undistorter->isValid());
 		undistorter->undistort(cv_ptr->image,bufferItem.data);
+
+		//Convert to CIE L*a*b* (takes 2 steps)
+		cv::Mat img_lab;
+		cvtColor(bufferItem.data, img_lab, cv::COLOR_GRAY2RGB);
+		cvtColor(img_lab, img_lab, cv::COLOR_RGB2Lab);
+		//Scan through image pixels
+		cv::MatIterator_<Vec3b> it_lab, end_lab;
+		cv::MatIterator_<uchar> it_grey, end_grey;
+		it_lab = img_lab.begin<Vec3b>();
+		end_lab = img_lab.end<Vec3b>();
+		it_grey = bufferItem.data.begin<uchar>();
+		end_grey = bufferItem.data.end<uchar>();
+		int cnt = 0;
+		for( ; it_lab != end_lab && it_grey != end_grey; ++it_lab, ++it_grey)
+		{
+			/*if ((*it_lab)[0] > 190) { //Is brightness above a certain level?
+				(*it_grey) = 0;
+			}*/
+			if ((cnt / width_ > height_/2-100 && cnt / width_ < height_/2+100) || cnt / width_ < 100 || cnt / width_ > height_-100) {
+				(*it_grey) = 0;
+			}
+			cnt ++;
+		}
 	}
 	else
 	{
+		//ROS_INFO("%i, %i", this->width_, this->height_);
+		//cv::resize(cv_ptr->image, cv_ptr->image, cv::Size(this->width_, this->height_));
 		bufferItem.data = cv_ptr->image;
 	}
 
@@ -258,17 +343,12 @@ void ROSImageStreamThread::infoCb(const sensor_msgs::CameraInfoConstPtr info)
 		cx_ = info->P[2];
 		cy_ = info->P[6];
 
-		if(fx_ == 0 || fy_==0)
-		{
-			printf("camera calib from P seems wrong, trying calib from K\n");
-			fx_ = info->K[0];
-			fy_ = info->K[4];
-			cx_ = info->K[2];
-			cy_ = info->K[5];
-		}
+		this->cam_intrinsics = cv::Matx33d(fx_,0,cx_,0,fy_,cy_,0,0,1);
 
 		width_ = info->width;
 		height_ = info->height;
+
+		haveCalib = true;
 
 		printf("Received ROS Camera Calibration: fx: %f, fy: %f, cx: %f, cy: %f @ %dx%d\n",fx_,fy_,cx_,cy_,width_,height_);
 	}
@@ -294,6 +374,8 @@ void ROSImageStreamThread::radiusCb(const std_msgs::Float64::ConstPtr& msg)
     ray_direction = robot_pose.getRotation()*ray_direction*robot_pose.getRotation().inverse();
     //Convert to eigen datatypes, which are much faster
     this->focal_plane_dir = Eigen::Vector3d(ray_direction.x(), ray_direction.y(), ray_direction.z());
+
+	haveDepthMap = true;
 }
 
 }

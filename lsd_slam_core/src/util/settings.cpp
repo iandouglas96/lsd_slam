@@ -40,7 +40,7 @@ bool dumpMap = false;
 bool doFullReConstraintTrack = false;
 
 // dyn config
-bool printPropagationStatistics = false;
+bool printPropagationStatistics = true;
 bool printFillHolesStatistics = false;
 bool printObserveStatistics = false;
 bool printObservePurgeStatistics = false;
@@ -62,7 +62,7 @@ bool printThreadingInfo = false;
 bool printMappingTiming = false;
 bool printOverallTiming = false;
 
-bool plotTrackingIterationInfo = false;
+bool plotTrackingIterationInfo = true;
 bool plotSim3TrackingIterationInfo = false;
 bool plotStereoImages = false;
 bool plotTracking = true;
@@ -74,10 +74,10 @@ float freeDebugParam3 = 1;
 float freeDebugParam4 = 1;
 float freeDebugParam5 = 1;
 
-float KFDistWeight = 8;
-float KFUsageWeight = 6;
+float KFDistWeight = 2;
+float KFUsageWeight = 2;
 
-float minUseGrad = 20;
+float minUseGrad = 10;
 float cameraPixelNoise2 = 4*4;
 float depthSmoothingFactor = 1;
 
@@ -97,7 +97,7 @@ bool doMapping = true;
 int maxLoopClosureCandidates = 10;
 int maxOptimizationIterations = 100;
 int propagateKeyFrameDepthCount = 0;
-float loopclosureStrictness = 1.5;
+float loopclosureStrictness = 0.1;
 float relocalizationTH = 0.7;
 
 

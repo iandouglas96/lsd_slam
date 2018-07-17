@@ -261,6 +261,8 @@ SE3 SE3Tracker::trackFrameOnPermaref(
 			}
 		}
 	}
+	lastSE3Hessian = ls.A;
+	//std::cout << "Hessian: " << lastSE3Hessian << "\n";
 
 	lastResidual = lastErr;
 
@@ -471,6 +473,8 @@ SE3 SE3Tracker::trackFrame(
 	saveAllTrackingStagesInternal = false;
 
 	lastResidual = last_residual;
+	lastSE3Hessian = ls.A;
+	//std::cout << "Hessian: " << lastSE3Hessian << "\n";
 
 	trackingWasGood = !diverged
 			&& lastGoodCount / (frame->width(SE3TRACKING_MIN_LEVEL)*frame->height(SE3TRACKING_MIN_LEVEL)) > MIN_GOODPERALL_PIXEL
@@ -480,7 +484,7 @@ SE3 SE3Tracker::trackFrame(
 		reference->keyframe->numFramesTrackedOnThis++;
 
 	frame->initialTrackedResidual = lastResidual / pointUsage;
-	frame->pose->thisToParent_raw = sim3FromSE3(toSophus(referenceToFrame.inverse()),1);
+	frame->pose->thisToParent_raw = toSophus(referenceToFrame.inverse());
 	frame->pose->trackingParent = reference->keyframe->pose;
 	return toSophus(referenceToFrame.inverse());
 }
@@ -913,6 +917,7 @@ float SE3Tracker::calcResidualAndBuffers(
 
 
 	const Eigen::Vector4f* frame_gradients = frame->gradients(level);
+	const float* frame_image = frame->image(level);
 
 	int idx=0;
 
@@ -933,6 +938,13 @@ float SE3Tracker::calcResidualAndBuffers(
 
 	for(;refPoint<refPoint_max; refPoint++, refColVar++, idxBuf++)
 	{
+		//Ignore black pixels (mask out)
+		if ((*refColVar)[0] <= 0) {
+			//std::cout << "skipping...\n";
+			if(isGoodOutBuffer != 0)
+				isGoodOutBuffer[*idxBuf] = false;
+			continue;
+		}
 
 		Eigen::Vector3f Wxp = rotMat * (*refPoint) + transVec;
 		float u_new = (Wxp[0]/Wxp[2])*fx_l + cx_l;
@@ -942,6 +954,15 @@ float SE3Tracker::calcResidualAndBuffers(
 		// (inverse test to exclude NANs)
 		if(!(u_new > 1 && v_new > 1 && u_new < w-2 && v_new < h-2))
 		{
+			if(isGoodOutBuffer != 0)
+				isGoodOutBuffer[*idxBuf] = false;
+			continue;
+		}
+
+		int uv_new = int(u_new)+int(v_new)*w;
+		//Ignore black pixels on new frame as well
+		if (frame_image[uv_new] <= 0 || frame_image[uv_new+1] <= 0 || frame_image[uv_new+1+w] <= 0 || frame_image[uv_new+w] <= 0) {
+			//std::cout << "skipping...\n";
 			if(isGoodOutBuffer != 0)
 				isGoodOutBuffer[*idxBuf] = false;
 			continue;

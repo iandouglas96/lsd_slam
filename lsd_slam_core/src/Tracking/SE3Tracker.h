@@ -45,6 +45,8 @@ public:
 	float fx,fy,cx,cy;
 	float fxi,fyi,cxi,cyi;
 
+	Matrix6x6 lastSE3Hessian;
+
 	DenseDepthTrackerSettings settings;
 
 

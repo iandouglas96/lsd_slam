@@ -20,17 +20,19 @@ find_package(catkin REQUIRED COMPONENTS
   rosbag
   tf2_geometry_msgs
   tf2_ros
+  lsd_slam_viewer
 )
 
 find_package(Eigen REQUIRED)
 find_package(X11 REQUIRED)
 find_package(OpenCV REQUIRED)
-include(cmake/FindG2O.cmake)
+find_package(PCL 1.8 REQUIRED)
 include(cmake/FindSuiteParse.cmake)
+include(cmake/FindG2O.cmake)
 
 message("-- CHOLMOD_INCLUDE_DIR : " ${CHOLMOD_INCLUDE_DIR})
 message("-- CSPARSE_INCLUDE_DIR : " ${CSPARSE_INCLUDE_DIR})
-message("-- G2O_INCLUDE_DIR : " ${G2O_INCLUDE_DIR})
+#message("-- G2O_INCLUDE_DIR : " ${G2O_INCLUDE_DIR})
 
 # FabMap
 # uncomment this part to enable fabmap
@@ -46,18 +48,26 @@ generate_dynamic_reconfigure_options(
 
 catkin_package(
   LIBRARIES lsdslam
-  DEPENDS Eigen SuiteSparse
-  CATKIN_DEPENDS libg2o 
+  DEPENDS Eigen
+  #CATKIN_DEPENDS libg2o 
 )
 
 # SSE flags
 add_definitions("-DUSE_ROS")
 add_definitions("-DENABLE_SSE")
+add_definitions(${PCL_DEFINITIONS})
 
 # Also add some useful compiler flag
 set(CMAKE_CXX_FLAGS
    "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++0x"
 ) 
+
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
 
 # Set source files
 set(lsd_SOURCE_FILES
@@ -79,7 +89,7 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/IOWrapper/Timestamp.cpp
   ${PROJECT_SOURCE_DIR}/src/GlobalMapping/FabMap.cpp
   ${PROJECT_SOURCE_DIR}/src/GlobalMapping/KeyFrameGraph.cpp
-  ${PROJECT_SOURCE_DIR}/src/GlobalMapping/g2oTypeSim3Sophus.cpp
+  ${PROJECT_SOURCE_DIR}/src/GlobalMapping/g2oTypeSE3Sophus.cpp
   ${PROJECT_SOURCE_DIR}/src/GlobalMapping/TrackableKeyFrameSearch.cpp
 )
 set(SOURCE_FILES
@@ -92,30 +102,37 @@ set(SOURCE_FILES
 #we have to go out a level for g2o because FindG2O is weird.
 include_directories(
   include
+  ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
-  ${G2O_INCLUDE_DIR}/..
+  ${G2O_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
+  ${PROJECT_SOURCE_DIR}/thirdparty/g2o
   ${CSPARSE_INCLUDE_DIR} #Has been set by SuiteParse
   ${CHOLMOD_INCLUDE_DIR} #Has been set by SuiteParse
 )
 
+link_directories(${PCL_LIBRARY_DIRS})
 
 # build shared library.
 add_library(lsdslam SHARED ${SOURCE_FILES})
-target_link_libraries(lsdslam ${FABMAP_LIB} ${G2O_LIBRARIES} ${catkin_LIBRARIES} csparse cxsparse )
+add_dependencies(lsdslam ${catkin_EXPORTED_TARGETS})
+target_link_libraries(lsdslam ${FABMAP_LIB} ${G2O_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 #rosbuild_link_boost(lsdslam thread)
 
 
 # build live ros node
 add_executable(live_slam src/main_live_odometry.cpp)
-target_link_libraries(live_slam lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES} X11)
+add_dependencies(live_slam ${catkin_EXPORTED_TARGETS})
+target_link_libraries(live_slam lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES} X11)
 
 
 # build image node
 add_executable(dataset src/main_on_images.cpp)
-target_link_libraries(dataset lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(dataset ${catkin_EXPORTED_TARGETS})
+target_link_libraries(dataset lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
 
 # TODO add INSTALL
 
