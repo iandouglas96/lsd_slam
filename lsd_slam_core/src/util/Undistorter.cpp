@@ -454,7 +454,7 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 	std::ifstream infile(configFileName);
 	assert(infile.good());
 
-	std::string l1, l2, l3, l4;
+	std::string l1, l2, l3, l4, l5;
 
 	std::getline(infile,l1);
 	std::getline(infile,l2);
@@ -479,6 +479,7 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 		valid = false;
 	}
 
+	cropCenter = false;
 	// l3
 	if(l3 == "crop")
 	{
@@ -489,6 +490,12 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 	{
 		outputCalibration = -2;
 		printf("Out: Full\n");
+	}
+	else if(l3 == "crop_center")
+	{
+		outputCalibration = -2;
+		cropCenter = true;
+		printf("Out: Crop center\n");
 	}
 	else if(l3 == "none")
 	{
@@ -510,6 +517,21 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 	{
 		printf("Out: Failed to Read Output resolution... not rectifying.\n");
 		valid = false;
+	}
+
+	// l5
+	if (cropCenter)
+	{
+		std::getline(infile,l5);
+		if(std::sscanf(l5.c_str(), "%d %d", &crop_width, &crop_height) == 2)
+		{
+			printf("Output size: %d %d\n", crop_width, crop_height);
+		}
+		else
+		{
+			printf("Out: Failed to Read Output resolution... not rectifying.\n");
+			valid = false;
+		}
 	}
 	
 	cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_32F);
@@ -545,12 +567,7 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 		K_ = cv::getOptimalNewCameraMatrix(originalK_, distCoeffs, cv::Size(in_width, in_height), (outputCalibration == -2) ? 1 : 0, cv::Size(out_width, out_height), nullptr, false);
 		
 		cv::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), K_,
-				cv::Size(out_width, out_height), CV_16SC2, map1, map2);
-		
-		originalK_.at<double>(0, 0) /= in_width;
-		originalK_.at<double>(0, 2) /= in_width;
-		originalK_.at<double>(1, 1) /= in_height;
-		originalK_.at<double>(1, 2) /= in_height;
+				cv::Size(out_width, out_height), CV_16SC2, map1, map2);	
 	}
 	
 	originalK_ = originalK_.t();
@@ -563,7 +580,22 @@ UndistorterOpenCV::~UndistorterOpenCV()
 
 void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) const
 {
-	cv::remap(image, result, map1, map2, cv::INTER_LINEAR);
+	cv::Mat undst;
+	cv::remap(image, undst, map1, map2, cv::INTER_LINEAR);
+
+	if (cropCenter) {
+		cv::Rect roi;
+		roi.x = (out_width-crop_width)/2;
+		roi.y = (out_height-crop_height)/2;
+		roi.width = crop_width;
+		roi.height = crop_height;
+
+		/* Crop the original image to the defined ROI */
+
+		undst = undst(roi);
+	}
+	cv::equalizeHist(undst, undst);
+	undst.copyTo(result);
 }
 
 const cv::Mat& UndistorterOpenCV::getK() const
@@ -578,12 +610,20 @@ const cv::Mat& UndistorterOpenCV::getOriginalK() const
 
 int UndistorterOpenCV::getOutputWidth() const
 {
-	return out_width;
+	if (cropCenter) {
+		return crop_width;
+	} else {
+		return out_width;
+	}
 }
 
 int UndistorterOpenCV::getOutputHeight() const
 {
-	return out_height;
+	if (cropCenter) {
+		return crop_height;
+	} else {
+		return out_height;
+	}
 }
 int UndistorterOpenCV::getInputWidth() const
 {

@@ -49,17 +49,15 @@ namespace Util
 
 void displayThreadLoop()
 {
-	printf("started image display thread!\n");
+	//printf("started image display thread!\n");
 	boost::unique_lock<boost::mutex> lock(openCVdisplayMutex);
-	while(imageThreadKeepRunning)
+	if(imageThreadKeepRunning)
 	{
-		openCVdisplaySignal.wait(lock);
-
-		if(!imageThreadKeepRunning)
-			break;
+		//openCVdisplaySignal.wait(lock);
 
 		while(displayQueue.size() > 0)
 		{
+			/*
 			if(!displayQueue.back().autoSize)
 			{
 				if(openWindows.find(displayQueue.back().name) == openWindows.end())
@@ -69,19 +67,20 @@ void displayThreadLoop()
 					openWindows.insert(displayQueue.back().name);
 				}
 			}
+			*/
 			cv::imshow(displayQueue.back().name, displayQueue.back().img);
 			displayQueue.pop_back();
 		}
 	}
-	cv::destroyAllWindows();
-	openWindows.clear();
+	//cv::destroyAllWindows();
+	//openWindows.clear();
 
-	printf("ended image display thread!\n");
+	//printf("ended image display thread!\n");
 }
 void makeDisplayThread()
 {
 	imageThreadKeepRunning = true;
-	imageDisplayThread = new boost::thread(&displayThreadLoop);
+	//imageDisplayThread = new boost::thread(&displayThreadLoop);
 }
 void displayImage(const char* windowName, const cv::Mat& image, bool autoSize)
 {

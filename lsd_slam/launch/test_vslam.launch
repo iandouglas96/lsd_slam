@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+
+-->
+<launch>
+<!-- Decompress the image -->
+  <node name="republish" pkg="image_transport" type="republish" args="compressed">
+    <remap from="in"  to="/cam/top_left"/>
+    <remap from="out"  to="/camera/top_left_image_decomp"/>
+  </node>
+
+  <!-- LSD SLAM system -->
+  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
+    <remap from="image" to="/camera/top_left_image_decomp"/>
+    <remap from="local_tunnel_radius" to="/test_icra2017_video/local_tunnel_radius"/>
+    <param name="calib" value="/home/ian/inspect_data/raw_calib.cfg"/>
+    <param name="hz" value="30"/>
+  </node>
+</launch>

@@ -65,7 +65,7 @@ bool printOverallTiming = false;
 bool plotTrackingIterationInfo = false;
 bool plotSim3TrackingIterationInfo = false;
 bool plotStereoImages = false;
-bool plotTracking = false;
+bool plotTracking = true;
 
 
 float freeDebugParam1 = 1;
@@ -74,10 +74,10 @@ float freeDebugParam3 = 1;
 float freeDebugParam4 = 1;
 float freeDebugParam5 = 1;
 
-float KFDistWeight = 4;
-float KFUsageWeight = 3;
+float KFDistWeight = 8;
+float KFUsageWeight = 6;
 
-float minUseGrad = 5;
+float minUseGrad = 20;
 float cameraPixelNoise2 = 4*4;
 float depthSmoothingFactor = 1;
 
@@ -107,7 +107,7 @@ bool saveLoopClosureImages =  false;
 bool saveAllTrackingStages = false;
 bool saveAllTrackingStagesInternal = false;
 
-bool continuousPCOutput = false;
+bool continuousPCOutput = true;
 
 
 bool fullResetRequested = false;

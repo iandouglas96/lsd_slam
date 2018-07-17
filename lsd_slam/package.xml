@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>lsd_slam</name>
+    <version>0.1.0</version>
+    <description>Empty package for generic lsd_slam stuff</description>
+
+    <maintainer email="you@yourdomain.tld">Your Name</maintainer>
+    <license>BSD</license>
+</package>
