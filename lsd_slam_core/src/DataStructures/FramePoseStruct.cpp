@@ -34,7 +34,7 @@ FramePoseStruct::FramePoseStruct(Frame* frame)
 {
 	cacheValidFor = -1;
 	isOptimized = false;
-	thisToParent_raw = camToWorld = camToWorld_new = Sim3();
+	thisToParent_raw = camToWorld = camToWorld_new = SE3();
 	this->frame = frame;
 	frameID = frame->id();
 	trackingParent = 0;
@@ -56,7 +56,7 @@ FramePoseStruct::~FramePoseStruct()
 		printf("DELETED pose %d, now there are %d\n", frameID, privateFramePoseStructAllocCount);
 }
 
-void FramePoseStruct::setPoseGraphOptResult(Sim3 camToWorld)
+void FramePoseStruct::setPoseGraphOptResult(SE3 camToWorld)
 {
 	if(!isInGraph)
 		return;
@@ -81,7 +81,7 @@ void FramePoseStruct::invalidateCache()
 {
 	cacheValidFor = -1;
 }
-Sim3 FramePoseStruct::getCamToWorld(int recursionDepth)
+SE3 FramePoseStruct::getCamToWorld(int recursionDepth)
 {
 	// prevent stack overflow
 	assert(recursionDepth < 5000);
@@ -96,7 +96,7 @@ Sim3 FramePoseStruct::getCamToWorld(int recursionDepth)
 
 	// return id if there is no parent (very first frame)
 	if(trackingParent == nullptr)
-		return camToWorld = Sim3();
+		return camToWorld = SE3();
 
 	// abs. pose is computed from the parent's abs. pose, and cached.
 	cacheValidFor = cacheValidCounter;

@@ -90,7 +90,7 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/IOWrapper/Timestamp.cpp
   ${PROJECT_SOURCE_DIR}/src/GlobalMapping/FabMap.cpp
   ${PROJECT_SOURCE_DIR}/src/GlobalMapping/KeyFrameGraph.cpp
-  ${PROJECT_SOURCE_DIR}/src/GlobalMapping/g2oTypeSim3Sophus.cpp
+  ${PROJECT_SOURCE_DIR}/src/GlobalMapping/g2oTypeSE3Sophus.cpp
   ${PROJECT_SOURCE_DIR}/src/GlobalMapping/TrackableKeyFrameSearch.cpp
 )
 set(SOURCE_FILES

@@ -32,7 +32,7 @@
 #include "GlobalMapping/KeyFrameGraph.h"
 #include "sophus/sim3.hpp"
 #include "geometry_msgs/PoseStamped.h"
-#include "GlobalMapping/g2oTypeSim3Sophus.h"
+#include "GlobalMapping/g2oTypeSE3Sophus.h"
 
 namespace lsd_slam
 {
@@ -136,7 +136,7 @@ void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf)
 	liveframe_publisher.publish(fMsg);
 
 
-	SE3 camToWorld = se3FromSim3(kf->getScaledCamToWorld());
+	SE3 camToWorld = (kf->getScaledCamToWorld());
 
 	geometry_msgs::PoseStamped pMsg;
 
@@ -175,7 +175,7 @@ void ROSOutput3DWrapper::publishKeyframeGraph(KeyFrameGraph* graph)
 	{
 		constraintData[i].from = graph->edgesAll[i]->firstFrame->id();
 		constraintData[i].to = graph->edgesAll[i]->secondFrame->id();
-		Sophus::Vector7d err = graph->edgesAll[i]->edge->error();
+		Sophus::Vector6d err = graph->edgesAll[i]->edge->error();
 		constraintData[i].err = sqrt(err.dot(err));
 	}
 	graph->edgesListsMutex.unlock();

@@ -511,7 +511,7 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 	}
 
 	// re-usable values.
-	SE3 oldToNew_SE3 = se3FromSim3(new_keyframe->pose->thisToParent_raw).inverse();
+	SE3 oldToNew_SE3 = (new_keyframe->pose->thisToParent_raw).inverse();
 	Eigen::Vector3f trafoInv_t = oldToNew_SE3.translation().cast<float>();
 	Eigen::Matrix3f trafoInv_R = oldToNew_SE3.rotationMatrix().matrix().cast<float>();
 
@@ -1141,7 +1141,7 @@ void DepthMap::updateKeyframe(std::deque< std::shared_ptr<Frame> > referenceFram
 					frame->getTrackingParent()->id());
 		}
 
-		Sim3 refToKf;
+		SE3 refToKf;
 		if(frame->pose->trackingParent->frameID == activeKeyFrame->id())
 			refToKf = frame->pose->thisToParent_raw;
 		else
@@ -1274,7 +1274,7 @@ void DepthMap::setLidarDepth(ROSImageStreamThread *depth)
 
 	float id, scale;
 
-	scale = activeKeyFrame->getScaledCamToWorld().scale();
+	scale = 1;
 	printf("scale: %f", scale);
 
 	for(int y=0;y<height;y++) {
@@ -1316,7 +1316,7 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 
 
 
-	SE3 oldToNew_SE3 = se3FromSim3(new_keyframe->pose->thisToParent_raw).inverse();
+	SE3 oldToNew_SE3 = (new_keyframe->pose->thisToParent_raw).inverse();
 
 	struct timeval tv_start, tv_end;
 	gettimeofday(&tv_start, NULL);
@@ -1356,7 +1356,7 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 
 
 	// make mean inverse depth be one.
-	float sumIdepth=0, numIdepth=0;
+	/*float sumIdepth=0, numIdepth=0;
 	for(DepthMapPixelHypothesis* source = currentDepthMap; source < currentDepthMap+width*height; source++)
 	{
 		if(!source->isValid)
@@ -1374,8 +1374,8 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 		source->idepth_smoothed *= rescaleFactor;
 		source->idepth_var *= rescaleFactor2;
 		source->idepth_var_smoothed *= rescaleFactor2;
-	}
-	activeKeyFrame->pose->thisToParent_raw = sim3FromSE3(oldToNew_SE3.inverse(), rescaleFactor);
+	}*/
+	activeKeyFrame->pose->thisToParent_raw = (oldToNew_SE3.inverse());
 	activeKeyFrame->pose->invalidateCache();
 
 	// Update depth in keyframe

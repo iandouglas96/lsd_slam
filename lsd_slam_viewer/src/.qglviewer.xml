@@ -5,15 +5,15 @@
     <backgroundColor red="51" blue="51" green="51"/>
   </State>
   <Display axisIsDrawn="false" gridIsDrawn="false" FPSIsDisplayed="false" cameraIsEdited="false"/>
-  <Geometry fullScreen="false" width="600" posX="2870" height="384" posY="8"/>
+  <Geometry fullScreen="false" width="1280" posX="4150" height="1052" posY="-8"/>
   <Camera>
     <Parameters fieldOfView="0.785398" sceneRadius="80" Type="PERSPECTIVE" zNearCoefficient="0.005" orthoCoef="0.414214" zClippingCoefficient="1.73205">
       <SceneCenter x="0" y="0" z="0"/>
     </Parameters>
     <Stereo focusDistance="193.137" physScreenWidth="0.5" IODist="0.062"/>
     <ManipulatedCameraFrame>
-      <position x="18.7544" y="6.00367" z="-0.292902"/>
-      <orientation q0="0.228788" q1="-0.674605" q2="0.0120419" q3="-0.701726"/>
+      <position x="16.0518" y="-7.15173" z="-3.96683"/>
+      <orientation q0="-0.75638" q1="0.1949" q2="-0.61574" q3="-0.103764"/>
       <ManipulatedParameters transSens="1" zoomSens="1" rotSens="1" wheelSens="1" spinSens="0.3"/>
       <ManipulatedCameraParameters zoomsOnPivotPoint="false" flySpeed="0.8" rotatesAroundUpVector="false">
         <sceneUpVector x="0" y="1" z="0"/>

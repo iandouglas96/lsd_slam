@@ -142,7 +142,6 @@ private:
 
 	// ============= EXCLUSIVELY FIND-CONSTRAINT THREAD (+ init) =============
 	TrackableKeyFrameSearch* trackableKeyFrameSearch;
-	Sim3Tracker* constraintTracker;
 	SE3Tracker* constraintSE3Tracker;
 	TrackingReference* newKFTrackingReference;
 	TrackingReference* candidateTrackingReference;
@@ -257,17 +256,17 @@ private:
 
 	void constraintSearchThreadLoop();
 	/** Calculates a scale independent error norm for reciprocal tracking results a and b with associated information matrices. */
-	float tryTrackSim3(
+	float tryTrackSE3(
 			TrackingReference* A, TrackingReference* B,
 			int lvlStart, int lvlEnd,
 			bool useSSE,
-			Sim3 &AtoB, Sim3 &BtoA,
+			SE3 &AtoB, SE3 &BtoA,
 			KFConstraintStruct* e1=0, KFConstraintStruct* e2=0);
 
 	void testConstraint(
 			Frame* candidate,
 			KFConstraintStruct* &e1_out, KFConstraintStruct* &e2_out,
-			Sim3 candidateToFrame_initialEstimate,
+			SE3 candidateToFrame_initialEstimate,
 			float strictness);
 
 	void optimizationThreadLoop();

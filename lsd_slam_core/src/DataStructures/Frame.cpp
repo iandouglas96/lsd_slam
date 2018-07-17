@@ -292,12 +292,12 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 	data.hasIDepthBeenSet = true;
 }
 
-void Frame::prepareForStereoWith(Frame* other, Sim3 thisToOther, const Eigen::Matrix3f& K, const int level)
+void Frame::prepareForStereoWith(Frame* other, SE3 thisToOther, const Eigen::Matrix3f& K, const int level)
 {
-	Sim3 otherToThis = thisToOther.inverse();
+	SE3 otherToThis = thisToOther.inverse();
 
 	//otherToThis = data.worldToCam * other->data.camToWorld;
-	K_otherToThis_R = K * otherToThis.rotationMatrix().cast<float>() * otherToThis.scale();
+	K_otherToThis_R = K * otherToThis.rotationMatrix().cast<float>();
 	otherToThis_t = otherToThis.translation().cast<float>();
 	K_otherToThis_t = K * otherToThis_t;
 
@@ -305,7 +305,7 @@ void Frame::prepareForStereoWith(Frame* other, Sim3 thisToOther, const Eigen::Ma
 
 	thisToOther_t = thisToOther.translation().cast<float>();
 	K_thisToOther_t = K * thisToOther_t;
-	thisToOther_R = thisToOther.rotationMatrix().cast<float>() * thisToOther.scale();
+	thisToOther_R = thisToOther.rotationMatrix().cast<float>();
 	otherToThis_R_row0 = thisToOther_R.col(0);
 	otherToThis_R_row1 = thisToOther_R.col(1);
 	otherToThis_R_row2 = thisToOther_R.col(2);
@@ -478,7 +478,7 @@ void Frame::initialize(int id, int width, int height, const Eigen::Matrix3f& K, 
 
 	edgeErrorSum = edgesNum = 1;
 
-	lastConstraintTrackedCamToWorld = Sim3();
+	lastConstraintTrackedCamToWorld = SE3();
 
 	isActive = false;
 }

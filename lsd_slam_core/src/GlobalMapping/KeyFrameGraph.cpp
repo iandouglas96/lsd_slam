@@ -35,7 +35,7 @@
 #include "opencv2/opencv.hpp"
 
 #include <g2o/types/sim3/sim3.h>
-#include "GlobalMapping/g2oTypeSim3Sophus.h"
+#include "GlobalMapping/g2oTypeSE3Sophus.h"
 
 
 #include "IOWrapper/ImageDisplay.h"
@@ -65,7 +65,7 @@ KFConstraintStruct::~KFConstraintStruct()
 KeyFrameGraph::KeyFrameGraph()
 : nextEdgeId(0)
 {
-	typedef g2o::BlockSolver_7_3 BlockSolver;
+	typedef g2o::BlockSolver_6_3 BlockSolver;
 	typedef g2o::LinearSolverCSparse<BlockSolver::PoseMatrixType> LinearSolver;
 	//typedef g2o::LinearSolverPCG<BlockSolver::PoseMatrixType> LinearSolver;
 	
@@ -242,13 +242,14 @@ void KeyFrameGraph::addKeyFrame(Frame* frame)
 		return;
 
 	// Insert vertex into g2o graph
-	VertexSim3* vertex = new VertexSim3();
+	VertexSE3* vertex = new VertexSE3();
 	vertex->setId(frame->id());
 
-	Sophus::Sim3d camToWorld_estimate = frame->getScaledCamToWorld();
+	Sophus::SE3d camToWorld_estimate = frame->getScaledCamToWorld();
 
 	if(!frame->hasTrackingParent())
 		vertex->setFixed(true);
+		std::cout << "Set fixed\n";
 
 	vertex->setEstimate(camToWorld_estimate);
 	vertex->setMarginalized(false);
@@ -261,17 +262,22 @@ void KeyFrameGraph::addKeyFrame(Frame* frame)
 
 void KeyFrameGraph::insertConstraint(KFConstraintStruct* constraint)
 {
-	EdgeSim3* edge = new EdgeSim3();
+	EdgeSE3* edge = new EdgeSE3();
 	edge->setId(nextEdgeId);
 	++ nextEdgeId;
 
 	totalEdges++;
+
+	std::cout << "New Constraint\n";
+	std::cout << "Information:\n" << constraint->information << "\n";
+	std::cout << "Measurement:\n" << constraint->secondToFirst.log() << "\n";
 
 	edge->setMeasurement(constraint->secondToFirst);
 	edge->setInformation(constraint->information);
 	edge->setRobustKernel(constraint->robustKernel);
 
 	edge->resize(2);
+
 	assert(constraint->firstFrame->pose->graphVertex != nullptr);
 	edge->setVertex(0, constraint->firstFrame->pose->graphVertex);
 	assert(constraint->secondFrame->pose->graphVertex != nullptr);
@@ -306,6 +312,7 @@ bool KeyFrameGraph::addElementsFromBuffer()
 	for (auto newKF : newKeyframesBuffer)
 	{
 		graph.addVertex(newKF->pose->graphVertex);
+		//std::cout << "node: \n" << newKF->pose->graphVertex->estimate().log() << "\n";
 		assert(!newKF->pose->isInGraph);
 		newKF->pose->isInGraph = true;
 
@@ -319,6 +326,7 @@ bool KeyFrameGraph::addElementsFromBuffer()
 	for (auto edge : newEdgeBuffer)
 	{
 		graph.addEdge(edge->edge);
+		//std::cout << "edge: \n" << edge->edge->measurement().log() << "\n";
 		added = true;
 	}
 	newEdgeBuffer.clear();

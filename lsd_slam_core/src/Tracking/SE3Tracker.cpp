@@ -261,6 +261,8 @@ SE3 SE3Tracker::trackFrameOnPermaref(
 			}
 		}
 	}
+	lastSE3Hessian = ls.A;
+	//std::cout << "Hessian: " << lastSE3Hessian << "\n";
 
 	lastResidual = lastErr;
 
@@ -471,6 +473,8 @@ SE3 SE3Tracker::trackFrame(
 	saveAllTrackingStagesInternal = false;
 
 	lastResidual = last_residual;
+	lastSE3Hessian = ls.A;
+	//std::cout << "Hessian: " << lastSE3Hessian << "\n";
 
 	trackingWasGood = !diverged
 			&& lastGoodCount / (frame->width(SE3TRACKING_MIN_LEVEL)*frame->height(SE3TRACKING_MIN_LEVEL)) > MIN_GOODPERALL_PIXEL
@@ -480,7 +484,7 @@ SE3 SE3Tracker::trackFrame(
 		reference->keyframe->numFramesTrackedOnThis++;
 
 	frame->initialTrackedResidual = lastResidual / pointUsage;
-	frame->pose->thisToParent_raw = sim3FromSE3(toSophus(referenceToFrame.inverse()),1);
+	frame->pose->thisToParent_raw = toSophus(referenceToFrame.inverse());
 	frame->pose->trackingParent = reference->keyframe->pose;
 	return toSophus(referenceToFrame.inverse());
 }

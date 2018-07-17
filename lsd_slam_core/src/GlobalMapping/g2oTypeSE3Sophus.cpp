@@ -18,7 +18,7 @@
 * along with LSD-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "GlobalMapping/g2oTypeSim3Sophus.h"
+#include "GlobalMapping/g2oTypeSE3Sophus.h"
 
 #include <g2o/core/factory.h>
 #include <g2o/stuff/macros.h>
@@ -29,18 +29,18 @@ namespace lsd_slam
 
 G2O_USE_TYPE_GROUP(sba);
 
-G2O_REGISTER_TYPE_GROUP(sim3sophus);
+G2O_REGISTER_TYPE_GROUP(se3sophus);
 
-G2O_REGISTER_TYPE(VERTEX_SIM3_SOPHUS:EXPMAP, VertexSim3);
-G2O_REGISTER_TYPE(EDGE_SIM3_SOPHUS:EXPMAP, EdgeSim3);
+G2O_REGISTER_TYPE(VERTEX_SE3_SOPHUS:EXPMAP, VertexSE3);
+G2O_REGISTER_TYPE(EDGE_SE3_SOPHUS:EXPMAP, EdgeSE3);
 
-VertexSim3::VertexSim3() : g2o::BaseVertex<7, Sophus::Sim3d>()
+VertexSE3::VertexSE3() : g2o::BaseVertex<6, Sophus::SE3d>()
 {
 	_marginalized=false;
 	_fix_scale = false;
 }
 
-bool VertexSim3::write(std::ostream& os) const
+bool VertexSE3::write(std::ostream& os) const
 {
 	// TODO
 	assert(false);
@@ -58,10 +58,10 @@ bool VertexSim3::write(std::ostream& os) const
 //     {
 //       os << _principle_point[i] << " ";
 //     }
-//     return os.good();
+//    return os.good();
 }
 
-bool VertexSim3::read(std::istream& is)
+bool VertexSE3::read(std::istream& is)
 {
 	// TODO
 	assert(false);
@@ -91,12 +91,12 @@ bool VertexSim3::read(std::istream& is)
 }
 
 
-EdgeSim3::EdgeSim3() :
-	g2o::BaseBinaryEdge<7, Sophus::Sim3d, VertexSim3, VertexSim3>()
+EdgeSE3::EdgeSE3() :
+	g2o::BaseBinaryEdge<6, Sophus::SE3d, VertexSE3, VertexSE3>()
 {
 }
 
-bool EdgeSim3::write(std::ostream& os) const
+bool EdgeSE3::write(std::ostream& os) const
 {
 	// TODO
 	assert(false);
@@ -114,7 +114,7 @@ bool EdgeSim3::write(std::ostream& os) const
 //     return os.good();
 }
 
-bool EdgeSim3::read(std::istream& is)
+bool EdgeSE3::read(std::istream& is)
 {
 	// TODO
 	assert(false);
