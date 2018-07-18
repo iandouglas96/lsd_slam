@@ -57,6 +57,7 @@
         "utility": "cpp",
         "valarray": "cpp",
         "optional": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "core": "cpp"
     }
 }

@@ -33,6 +33,7 @@ G2O_REGISTER_TYPE_GROUP(se3sophus);
 
 G2O_REGISTER_TYPE(VERTEX_SE3_SOPHUS:EXPMAP, VertexSE3);
 G2O_REGISTER_TYPE(EDGE_SE3_SOPHUS:EXPMAP, EdgeSE3);
+G2O_REGISTER_TYPE(EDGE_SE3_NOX_SOPHUS:EXPMAP, EdgeSE3NoX);
 
 VertexSE3::VertexSE3() : g2o::BaseVertex<6, Sophus::SE3d>()
 {
@@ -136,4 +137,52 @@ bool EdgeSE3::read(std::istream& is)
 //       }
 //     return true;
 }
+
+EdgeSE3NoX::EdgeSE3NoX() :
+	g2o::BaseBinaryEdge<6, SE3NoX, VertexSE3, VertexSE3>()
+{
+}
+
+bool EdgeSE3NoX::write(std::ostream& os) const
+{
+	// TODO
+	assert(false);
+	return false;
+//     Sim3 cam2world(measurement().inverse());
+//     Vector7d v7 = cam2world.log();
+//     for (int i=0; i<7; i++)
+//     {
+//       os  << v7[i] << " ";
+//     }
+//     for (int i=0; i<7; i++)
+//       for (int j=i; j<7; j++){
+//         os << " " <<  information()(i,j);
+//     }
+//     return os.good();
+}
+
+bool EdgeSE3NoX::read(std::istream& is)
+{
+	// TODO
+	assert(false);
+	return false;
+//     Vector7d v7;
+//     for (int i=0; i<7; i++){
+//       is >> v7[i];
+//     }
+// 
+//     Sim3 cam2world(v7);
+//     setMeasurement(cam2world.inverse());
+// 
+//     for (int i=0; i<7; i++)
+//       for (int j=i; j<7; j++)
+//       {
+//         is >> information()(i,j);
+//         if (i!=j)
+//           information()(j,i)=information()(i,j);
+//       }
+//     return true;
+}
+
+
 }
