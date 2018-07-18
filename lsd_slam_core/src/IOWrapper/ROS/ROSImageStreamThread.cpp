@@ -27,6 +27,7 @@
 #include "cv_bridge/cv_bridge.h"
 #include "util/settings.h"
 #include <Eigen/Dense>
+#include <tf2_eigen/tf2_eigen.h>
 #undef USE_ROS //Make PCL
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
@@ -111,6 +112,15 @@ float ROSImageStreamThread::getDepth(int x, int y)
 		return depth_map.at<float>(y,x)*vec.dot(vec_c);
 	}
     return -1;
+}
+
+SE3NoX ROSImageStreamThread::getTransform()
+{
+	Eigen::Quaterniond quat;
+	Eigen::Vector2d trans(this->top_left_transform.getOrigin().getY(), this->top_left_transform.getOrigin().getZ());
+	tf2::convert(this->top_left_transform.getRotation(), quat);
+
+	return SE3NoX(quat, trans);
 }
 
 float ROSImageStreamThread::calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform)

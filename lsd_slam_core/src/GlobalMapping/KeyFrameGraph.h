@@ -37,6 +37,7 @@ class Frame;
 class KeyFrameGraph;
 class VertexSE3;
 class EdgeSE3;
+class EdgeSE3NoX;
 class FramePoseStruct;
 
 struct KFConstraintStruct
@@ -49,6 +50,7 @@ struct KFConstraintStruct
 		information.setZero();
 		robustKernel = 0;
 		edge = 0;
+		hasX = true;
 
 		usage = meanResidual = meanResidualD = meanResidualP = 0;
 		reciprocalConsistency = 0;
@@ -66,7 +68,9 @@ struct KFConstraintStruct
 	Eigen::Matrix<double, 6, 6> information;
 	g2o::RobustKernel* robustKernel;
 	EdgeSE3* edge;
+	EdgeSE3NoX* edgeNoX;
 
+	bool hasX;
 	float usage;
 	float meanResidualD;
 	float meanResidualP;

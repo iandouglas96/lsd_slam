@@ -1553,6 +1553,14 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 		}
 	}
 
+	//Cross section constraint
+	constraints.push_back(new KFConstraintStruct());
+	constraints.back()->hasX = false;
+	constraints.back()->firstFrame = newKeyFrame;
+	constraints.back()->secondFrame = newKeyFrame->getTrackingParent();
+	constraints.back()->secondToFirst = SE3NoX(0,0,0,0,0).transform();
+	constraints.back()->information.setIdentity();
+	constraints.back()->information *= 1e10;
 
 	newConstraintMutex.lock();
 

@@ -175,7 +175,12 @@ void ROSOutput3DWrapper::publishKeyframeGraph(KeyFrameGraph* graph)
 	{
 		constraintData[i].from = graph->edgesAll[i]->firstFrame->id();
 		constraintData[i].to = graph->edgesAll[i]->secondFrame->id();
-		Sophus::Vector6d err = graph->edgesAll[i]->edge->error();
+		Sophus::Vector6d err;
+		if (graph->edgesAll[i]->hasX) {
+			err = graph->edgesAll[i]->edge->error();
+		} else {
+			err = graph->edgesAll[i]->edgeNoX->error();
+		}
 		constraintData[i].err = sqrt(err.dot(err));
 	}
 	graph->edgesListsMutex.unlock();

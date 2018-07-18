@@ -39,6 +39,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "util/Undistorter.h"
+#include "GlobalMapping/g2oTypeSE3Sophus.h"
 
 
 namespace lsd_slam
@@ -69,6 +70,8 @@ public:
 
 	//Get depth (in meters) for a particular pixel at x,y
     float getDepth(int x, int y);
+
+	SE3NoX getTransform();
 
 	bool depthReady();
 	

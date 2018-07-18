@@ -262,30 +262,45 @@ void KeyFrameGraph::addKeyFrame(Frame* frame)
 
 void KeyFrameGraph::insertConstraint(KFConstraintStruct* constraint)
 {
-	EdgeSE3* edge = new EdgeSE3();
-	edge->setId(nextEdgeId);
+	if (constraint->hasX) {
+		EdgeSE3* edge = new EdgeSE3();
+		edge->setId(nextEdgeId);
+		edge->setMeasurement(constraint->secondToFirst);
+		edge->setInformation(constraint->information);
+		edge->setRobustKernel(constraint->robustKernel);
+
+		edge->resize(2);
+
+		assert(constraint->firstFrame->pose->graphVertex != nullptr);
+		edge->setVertex(0, constraint->firstFrame->pose->graphVertex);
+		assert(constraint->secondFrame->pose->graphVertex != nullptr);
+		edge->setVertex(1, constraint->secondFrame->pose->graphVertex);
+		constraint->edge = edge;
+	} else {
+		EdgeSE3NoX* edge = new EdgeSE3NoX();
+		edge->setId(nextEdgeId);
+		edge->setMeasurement(SE3NoX(constraint->secondToFirst));
+		edge->setInformation(constraint->information);
+		//edge->setRobustKernel(constraint->robustKernel);
+
+		edge->resize(2);
+
+		assert(constraint->firstFrame->pose->graphVertex != nullptr);
+		edge->setVertex(0, constraint->firstFrame->pose->graphVertex);
+		assert(constraint->secondFrame->pose->graphVertex != nullptr);
+		edge->setVertex(1, constraint->secondFrame->pose->graphVertex);
+		constraint->edgeNoX = edge;
+	}
+	
 	++ nextEdgeId;
 
 	totalEdges++;
 
 	std::cout << "New Constraint\n";
 	std::cout << "Information:\n" << constraint->information << "\n";
-	std::cout << "Measurement:\n" << constraint->secondToFirst.log() << "\n";
+	std::cout << "Measurement:\n" << constraint->secondToFirst.matrix() << "\n";
 
-	edge->setMeasurement(constraint->secondToFirst);
-	edge->setInformation(constraint->information);
-	edge->setRobustKernel(constraint->robustKernel);
-
-	edge->resize(2);
-
-	assert(constraint->firstFrame->pose->graphVertex != nullptr);
-	edge->setVertex(0, constraint->firstFrame->pose->graphVertex);
-	assert(constraint->secondFrame->pose->graphVertex != nullptr);
-	edge->setVertex(1, constraint->secondFrame->pose->graphVertex);
-
-	constraint->edge = edge;
 	newEdgeBuffer.push_back(constraint);
-
 
 	constraint->firstFrame->neighbors.insert(constraint->secondFrame);
 	constraint->secondFrame->neighbors.insert(constraint->firstFrame);
@@ -294,7 +309,6 @@ void KeyFrameGraph::insertConstraint(KFConstraintStruct* constraint)
 	{
 		//shortestDistancesMap
 	}
-
 
 
 	edgesListsMutex.lock();
@@ -325,7 +339,11 @@ bool KeyFrameGraph::addElementsFromBuffer()
 	newKeyframesBuffer.clear();
 	for (auto edge : newEdgeBuffer)
 	{
-		graph.addEdge(edge->edge);
+		if (edge->hasX) {
+			graph.addEdge(edge->edge);
+		} else {
+			graph.addEdge(edge->edgeNoX);
+		}
 		//std::cout << "edge: \n" << edge->edge->measurement().log() << "\n";
 		added = true;
 	}
