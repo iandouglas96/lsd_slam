@@ -28,7 +28,7 @@
 #include "util/settings.h"
 #include <Eigen/Dense>
 #include <tf2_eigen/tf2_eigen.h>
-#undef USE_ROS //Make PCL
+#undef USE_ROS //Make PCL compilable
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/range_image/range_image_planar.h>
@@ -116,9 +116,11 @@ float ROSImageStreamThread::getDepth(int x, int y)
 
 SE3NoX ROSImageStreamThread::getTransform()
 {
+	//Transform FROM tunnel frame TO robot frame
+	tf2::Transform tf_transform = this->top_left_transform.inverse();
 	Eigen::Quaterniond quat;
-	Eigen::Vector2d trans(this->top_left_transform.getOrigin().getY(), this->top_left_transform.getOrigin().getZ());
-	tf2::convert(this->top_left_transform.getRotation(), quat);
+	Eigen::Vector2d trans(tf_transform.getOrigin().getY(), tf_transform.getOrigin().getZ());
+	tf2::convert(tf_transform.getRotation(), quat);
 
 	return SE3NoX(quat, trans);
 }
@@ -159,7 +161,8 @@ cv::Point3d ROSImageStreamThread::calcProjectionCameraFrame(int x, int y)
 
     hom_pt = this->cam_intrinsics.inv()*hom_pt; //put in world coordinates
 
-    cv::Point3d direction(hom_pt(0),hom_pt(1),hom_pt(2));
+	//Flip around axes because camera is rotated
+    cv::Point3f direction(-hom_pt(1),hom_pt(0),hom_pt(2));
 
     //Normalize so we have a unit vector
     direction *= 1/cv::norm(direction);
@@ -372,7 +375,7 @@ void ROSImageStreamThread::radiusCb(const std_msgs::Float64::ConstPtr& msg)
 	//ROS_INFO("%f", this->tunnel_radius);
 
     //Load current camera transform while we are at it
-    tf2::convert(tf_buffer->lookupTransform("center_cylinder", "cam_top_left", ros::Time(0), ros::Duration(1.0) ), this->top_left_transform);       
+    tf2::convert(tf_buffer->lookupTransform("center_cylinder", "cam_top_left", ros::Time(0), ros::Duration(1.0)), this->top_left_transform);       
 
 	//Find the normal vector of the focal plane
 	tf2::Stamped<tf2::Transform> pose;

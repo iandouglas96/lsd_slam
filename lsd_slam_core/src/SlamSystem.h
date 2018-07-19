@@ -32,6 +32,7 @@
 #include "util/SophusUtil.h"
 
 #include "Tracking/Relocalizer.h"
+#include "GlobalMapping/g2oTypeSE3Sophus.h"
 
 
 
@@ -180,6 +181,9 @@ private:
 	// => no locking required.
 	std::shared_ptr<Frame> latestTrackedFrame;
 	bool createNewKeyFrame;
+
+	SE3NoX newCrossSectionPose, oldCrossSectionPose;
+	bool haveCrossSectionPoses;
 
 
 

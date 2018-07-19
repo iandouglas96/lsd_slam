@@ -180,7 +180,7 @@ class SE3NoX {
 * \brief 5D edge between two Vertex6 (do not constrain x-axis motion)
 * Still 6d because we still are internally just on SE3
 */
-class EdgeSE3NoX : public g2o::BaseBinaryEdge<6, SE3NoX, VertexSE3, VertexSE3>
+class EdgeSE3NoX : public g2o::BaseBinaryEdge<6, Sophus::SE3d, VertexSE3, VertexSE3>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -194,8 +194,9 @@ public:
 		const VertexSE3* _from = static_cast<const VertexSE3*>(_vertices[0]);
 		const VertexSE3* _to = static_cast<const VertexSE3*>(_vertices[1]);
 
-		SE3NoX error_(_from->estimate().inverse() * _to->estimate() * _inverseMeasurement);
-		_error = error_.transform().log();
+		Sophus::SE3d error_ = _from->estimate().inverse() * _to->estimate() * _inverseMeasurement;
+		error_.translation() -= _ignoredAxis * error_.translation().dot(_ignoredAxis);
+		_error = error_.log();
 	}
 	
 	void linearizeOplus()
@@ -206,17 +207,28 @@ public:
 		_jacobianOplusXi = -_jacobianOplusXj;
 	}
 
+	void setIgnoredAxis(const Eigen::Matrix3d& rot)
+	{
+		//Rotate x axis (tf ref frame)
+		_ignoredAxis = Eigen::Vector3d(1,0,0);
+		_ignoredAxis = rot*_ignoredAxis;
+		//Now flip x and y (convert to lsd ref frame)
+		double tmp = _ignoredAxis(0);
+		_ignoredAxis(0) = _ignoredAxis(1);
+		_ignoredAxis(1) = tmp;
+		//std::cout << "Ignored rot: \n" << _ignoredAxis << "\n"; 
+	}
 
-	virtual void setMeasurement(const SE3NoX& m)
+	virtual void setMeasurement(const Sophus::SE3d& m)
 	{
 		_measurement = m;
-		_inverseMeasurement = _measurement.transform().inverse();
+		_inverseMeasurement = _measurement.inverse();
 	}
 	
-	virtual bool setMeasurementData(const double* m)
+	/*virtual bool setMeasurementData(const double* m)
 	{
 		Eigen::Map<const Sophus::Vector6d> v(m);
-		setMeasurement(SE3NoX(Sophus::SE3d::exp(v)));
+		setMeasurement(Sophus::SE3d::exp(v));
 		return true;
 	}
 	
@@ -225,9 +237,9 @@ public:
 		const VertexSE3* from = static_cast<const VertexSE3*>(_vertices[0]);
 		const VertexSE3* to   = static_cast<const VertexSE3*>(_vertices[1]);
 		Sophus::SE3d delta = from->estimate().inverse() * to->estimate();
-		setMeasurement(SE3NoX(delta));
+		setMeasurement(delta);
 		return true;
-	}
+	}*/
 
 	virtual double initialEstimatePossible(const g2o::OptimizableGraph::VertexSet& , g2o::OptimizableGraph::Vertex* ) { return 1.;}
 	
@@ -237,12 +249,13 @@ public:
 		VertexSE3 *_to   = static_cast<VertexSE3*>(_vertices[1]);
 
 		if (from.count(_from) > 0)
-			_to->setEstimate(_from->estimate() * _measurement.transform());
+			_to->setEstimate(_from->estimate() * _measurement);
 		else
 			_from->setEstimate(_to->estimate() * _inverseMeasurement);
 	}
 private:
 	Sophus::SE3d _inverseMeasurement;
+	Eigen::Vector3d _ignoredAxis;
 };
 
 } //End namespace

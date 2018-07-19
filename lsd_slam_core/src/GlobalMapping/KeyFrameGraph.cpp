@@ -279,8 +279,9 @@ void KeyFrameGraph::insertConstraint(KFConstraintStruct* constraint)
 	} else {
 		EdgeSE3NoX* edge = new EdgeSE3NoX();
 		edge->setId(nextEdgeId);
-		edge->setMeasurement(SE3NoX(constraint->secondToFirst));
+		edge->setMeasurement(constraint->secondToFirst);
 		edge->setInformation(constraint->information);
+		edge->setIgnoredAxis(constraint->ignoredAxis);
 		//edge->setRobustKernel(constraint->robustKernel);
 
 		edge->resize(2);
@@ -361,12 +362,10 @@ int KeyFrameGraph::optimize(int num_iterations)
 	graph.setVerbose(false); // printOptimizationInfo
 	graph.initializeOptimization();
 	
-
+	//printf("optimizing...\n");
 	return graph.optimize(num_iterations, false);
 
 }
-
-
 
 void KeyFrameGraph::calculateGraphDistancesToFrame(Frame* startFrame, std::unordered_map< Frame*, int >* distanceMap)
 {

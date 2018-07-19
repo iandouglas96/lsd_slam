@@ -69,6 +69,8 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 	keyFrameGraph = new KeyFrameGraph();
 	createNewKeyFrame = false;
 
+	haveCrossSectionPoses = false;
+
 	map =  new DepthMap(w,h,K);
 	
 	newConstraintAdded = false;
@@ -1211,6 +1213,10 @@ void SlamSystem::testConstraint(
 
 int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forceParent, bool useFABMAP, float closeCandidatesTH)
 {
+	//Get current cross section pose
+	newCrossSectionPose = lidarDepth->getTransform();
+
+	//Are we the first keyframe?
 	if(!newKeyFrame->hasTrackingParent())
 	{
 		newConstraintMutex.lock();
@@ -1218,6 +1224,10 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 		newConstraintAdded = true;
 		newConstraintCreatedSignal.notify_all();
 		newConstraintMutex.unlock();
+
+		//Copy pose over
+		oldCrossSectionPose = newCrossSectionPose;
+		haveCrossSectionPoses = true;
 		return 0;
 	}
 
@@ -1276,7 +1286,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 
 	SO3 disturbance = SO3::exp(Sophus::Vector3d(0.05,0,0));
 
-	for (Frame* candidate : candidates)
+	/*for (Frame* candidate : candidates)
 	{
 		if (candidate->id() == newKeyFrame->id())
 			continue;
@@ -1301,13 +1311,15 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 		if((f2c.so3() * c2f.so3()).log().norm() >= 0.09) {closeInconsistent++; continue;}
 
 		closeCandidates.insert(candidate);
-	}
+	}*/
 
 
 
 	int farFailed = 0;
 	int farInconsistent = 0;
-	for (Frame* candidate : candidates)
+	//Don't allow far loop closure.  Tunnel wall looks all pretty similar, don't want
+	//to close the loop incorrectly.
+	/*for (Frame* candidate : candidates)
 	{
 		if (candidate->id() == newKeyFrame->id())
 			continue;
@@ -1328,7 +1340,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 			continue;
 
 		farCandidates.push_back(candidate);
-	}
+	}*/
 
 
 
@@ -1510,7 +1522,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 	}
 
 
-
+	//If we are adding a new keyframe, create contraints b/w new frame and parent
 	if(parent != 0 && forceParent)
 	{
 		KFConstraintStruct* e1=0;
@@ -1551,16 +1563,29 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 
 			poseConsistencyMutex.unlock_shared();
 		}
-	}
 
-	//Cross section constraint
-	constraints.push_back(new KFConstraintStruct());
-	constraints.back()->hasX = false;
-	constraints.back()->firstFrame = newKeyFrame;
-	constraints.back()->secondFrame = newKeyFrame->getTrackingParent();
-	constraints.back()->secondToFirst = SE3NoX(0,0,0,0,0).transform();
-	constraints.back()->information.setIdentity();
-	constraints.back()->information *= 1e10;
+		if (haveCrossSectionPoses) {
+			poseConsistencyMutex.lock_shared();
+			//Cross section constraint
+			constraints.push_back(new KFConstraintStruct());
+			constraints.back()->hasX = false;
+			constraints.back()->firstFrame = newKeyFrame;
+			constraints.back()->secondFrame = newKeyFrame->getTrackingParent();
+
+			//std::cout << "dump:\n" << oldCrossSectionPose.transform().matrix() << "\n"; 
+			constraints.back()->secondToFirst = newCrossSectionPose.transform()*oldCrossSectionPose.transform().inverse();
+			constraints.back()->ignoredAxis = oldCrossSectionPose.transform().inverse().rotationMatrix();
+			constraints.back()->information.setIdentity();
+			//Information matrix is a sort of inverse covariance
+			//Larger values -> stricter constraint
+			constraints.back()->information *= 1e7;
+			poseConsistencyMutex.unlock_shared();
+		}
+
+		//Copy pose over
+		oldCrossSectionPose = newCrossSectionPose;
+		haveCrossSectionPoses = true;
+	}
 
 	newConstraintMutex.lock();
 
@@ -1597,10 +1622,13 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 	newConstraintMutex.lock();
 	keyFrameGraph->addElementsFromBuffer();
 	newConstraintMutex.unlock();
-
+	//printf("Optimizing...\n");
 
 	// Do the optimization. This can take quite some time!
 	int its = keyFrameGraph->optimize(itsPerTry);
+	//printf("optimized\n");
+
+	//printf("Optimized!\n");
 	
 
 	// save the optimization result.
@@ -1651,9 +1679,9 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 
 	g2oGraphAccessMutex.unlock();
 
-	if(enablePrintDebugInfo && printOptimizationInfo)
-		printf("did %d optimization iterations. Max Pose Parameter Change: %f; avgChange: %f. %s\n", its, maxChange, sumChange / sum,
-				maxChange > minChange && its == itsPerTry ? "continue optimizing":"Waiting for addition to graph.");
+	//if(enablePrintDebugInfo && printOptimizationInfo)
+	/*printf("did %d optimization iterations. Max Pose Parameter Change: %f; avgChange: %f. %s\n", its, maxChange, sumChange / sum,
+				maxChange > minChange && its == itsPerTry ? "continue optimizing":"Waiting for addition to graph.");*/
 
 
 	gettimeofday(&tv_end, NULL);

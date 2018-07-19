@@ -69,6 +69,7 @@ struct KFConstraintStruct
 	g2o::RobustKernel* robustKernel;
 	EdgeSE3* edge;
 	EdgeSE3NoX* edgeNoX;
+	Eigen::Matrix3d ignoredAxis;
 
 	bool hasX;
 	float usage;

@@ -139,7 +139,7 @@ bool EdgeSE3::read(std::istream& is)
 }
 
 EdgeSE3NoX::EdgeSE3NoX() :
-	g2o::BaseBinaryEdge<6, SE3NoX, VertexSE3, VertexSE3>()
+	g2o::BaseBinaryEdge<6, Sophus::SE3d, VertexSE3, VertexSE3>()
 {
 }
 
