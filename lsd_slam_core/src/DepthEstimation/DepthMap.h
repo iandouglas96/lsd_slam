@@ -142,6 +142,7 @@ private:
 
 
 	void propagateDepth(Frame* new_keyframe);
+	void updateMapWithLidar(DepthMapPixelHypothesis* original);
 	
 
 	void observeDepth();

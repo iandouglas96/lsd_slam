@@ -39,7 +39,7 @@ KeyFrameDisplay::KeyFrameDisplay()
 	glBuffersValid = false;
 
 
-	camToWorld = Sophus::Sim3f();
+	camToWorld = Sophus::SE3f();
 	width=height=0;
 
 	my_scaledTH = my_absTH = 0;
@@ -64,7 +64,7 @@ KeyFrameDisplay::~KeyFrameDisplay()
 void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 {
 	// copy over campose.
-	memcpy(camToWorld.data(), msg->camToWorld.data(), 7*sizeof(float));
+	memcpy(camToWorld.data(), msg->camToWorld.data(), 6*sizeof(float));
 
 	fx = msg->fx;
 	fy = msg->fy;
@@ -107,8 +107,6 @@ void KeyFrameDisplay::refreshPC()
 //	minNearSupport = 9;
 	bool paramsStillGood = my_scaledTH == scaledDepthVarTH &&
 			my_absTH == absDepthVarTH &&
-			my_scale*1.2 > camToWorld.scale() &&
-			my_scale < camToWorld.scale()*1.2 &&
 			my_minNearSupport == minNearSupport &&
 			my_sparsifyFactor == sparsifyFactor;
 
@@ -139,7 +137,7 @@ void KeyFrameDisplay::refreshPC()
 
 	my_scaledTH =scaledDepthVarTH;
 	my_absTH = absDepthVarTH;
-	my_scale = camToWorld.scale();
+	my_scale = 1;
 	my_minNearSupport = minNearSupport;
 	my_sparsifyFactor = sparsifyFactor;
 	// data is directly in ros message, in correct format.

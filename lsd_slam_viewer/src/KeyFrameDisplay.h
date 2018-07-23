@@ -25,7 +25,7 @@
 
 #include "QGLViewer/qglviewer.h"
 #include "lsd_slam_viewer/keyframeMsg.h"
-#include "sophus/sim3.hpp"
+#include "sophus/se3.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -71,7 +71,7 @@ public:
 
 	// camera pose
 	// may be updated by kf-graph.
-	Sophus::Sim3f camToWorld;
+	Sophus::SE3f camToWorld;
 
 private:
 	// camera parameter

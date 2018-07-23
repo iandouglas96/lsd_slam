@@ -94,10 +94,11 @@ bool doSlam = true;
 bool doKFReActivation = true;
 bool doMapping = true;
 
-int maxLoopClosureCandidates = 10;
+int maxLoopClosureCandidates = 0;
+bool doLoopClosure = false;
 int maxOptimizationIterations = 100;
 int propagateKeyFrameDepthCount = 0;
-float loopclosureStrictness = 0.1;
+float loopclosureStrictness = 1.5;
 float relocalizationTH = 0.7;
 
 
@@ -113,6 +114,8 @@ bool continuousPCOutput = true;
 bool fullResetRequested = false;
 bool manualTrackingLossIndicated = false;
 
+bool doConstrainCrossSection = false;
+float lidarDepthCovariance = 0.01;//1cm seems reasonable (but probably check this)
 
 std::string packagePath = "";
 

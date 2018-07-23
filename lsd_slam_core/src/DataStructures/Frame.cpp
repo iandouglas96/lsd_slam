@@ -628,6 +628,8 @@ void Frame::buildMaxGradients(int level)
 		float dx = *((float*)gradxyii_pt);
 		float dy = *(1+(float*)gradxyii_pt);
 		*maxgrad_pt = sqrtf(dx*dx + dy*dy);
+		//if (dx > 0 && dy > 0) *maxgrad_pt = sqrtf(dx*dx + dy*dy);
+		//else *maxgrad_pt = 0;
 	}
 
 	// 2. smear up/down direction into temp buffer

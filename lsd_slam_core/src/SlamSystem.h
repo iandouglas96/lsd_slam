@@ -28,6 +28,7 @@
 #include "IOWrapper/Timestamp.h"
 #include "IOWrapper/ROS/ROSImageStreamThread.h"
 #include "opencv2/core/core.hpp"
+#include "Tracking/SE3DepthTracker.h"
 
 #include "util/SophusUtil.h"
 
@@ -143,6 +144,7 @@ private:
 
 	// ============= EXCLUSIVELY FIND-CONSTRAINT THREAD (+ init) =============
 	TrackableKeyFrameSearch* trackableKeyFrameSearch;
+	SE3DepthTracker* constraintDepthTracker;
 	SE3Tracker* constraintSE3Tracker;
 	TrackingReference* newKFTrackingReference;
 	TrackingReference* candidateTrackingReference;
@@ -184,6 +186,7 @@ private:
 
 	SE3NoX newCrossSectionPose, oldCrossSectionPose;
 	bool haveCrossSectionPoses;
+	Frame* firstKeyFrame;
 
 
 
@@ -260,7 +263,7 @@ private:
 
 	void constraintSearchThreadLoop();
 	/** Calculates a scale independent error norm for reciprocal tracking results a and b with associated information matrices. */
-	float tryTrackSE3(
+	float tryTrackSE3Depth(
 			TrackingReference* A, TrackingReference* B,
 			int lvlStart, int lvlEnd,
 			bool useSSE,

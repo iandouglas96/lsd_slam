@@ -311,35 +311,35 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 	{
 		assert(undistorter->isValid());
 		undistorter->undistort(cv_ptr->image,bufferItem.data);
-
-		//Convert to CIE L*a*b* (takes 2 steps)
-		cv::Mat img_lab;
-		cvtColor(bufferItem.data, img_lab, cv::COLOR_GRAY2RGB);
-		cvtColor(img_lab, img_lab, cv::COLOR_RGB2Lab);
-		//Scan through image pixels
-		cv::MatIterator_<Vec3b> it_lab, end_lab;
-		cv::MatIterator_<uchar> it_grey, end_grey;
-		it_lab = img_lab.begin<Vec3b>();
-		end_lab = img_lab.end<Vec3b>();
-		it_grey = bufferItem.data.begin<uchar>();
-		end_grey = bufferItem.data.end<uchar>();
-		int cnt = 0;
-		for( ; it_lab != end_lab && it_grey != end_grey; ++it_lab, ++it_grey)
-		{
-			/*if ((*it_lab)[0] > 190) { //Is brightness above a certain level?
-				(*it_grey) = 0;
-			}*/
-			if ((cnt / width_ > height_/2-100 && cnt / width_ < height_/2+100) || cnt / width_ < 100 || cnt / width_ > height_-100) {
-				(*it_grey) = 0;
-			}
-			cnt ++;
-		}
 	}
 	else
 	{
 		//ROS_INFO("%i, %i", this->width_, this->height_);
 		//cv::resize(cv_ptr->image, cv_ptr->image, cv::Size(this->width_, this->height_));
 		bufferItem.data = cv_ptr->image;
+	}
+
+	//Convert to CIE L*a*b* (takes 2 steps)
+	/*cv::Mat img_lab;
+	cvtColor(bufferItem.data, img_lab, cv::COLOR_GRAY2RGB);
+	cvtColor(img_lab, img_lab, cv::COLOR_RGB2Lab);
+	//Scan through image pixels
+	cv::MatIterator_<Vec3b> it_lab, end_lab;*/
+	cv::MatIterator_<uchar> it_grey, end_grey;
+	//it_lab = img_lab.begin<Vec3b>();
+	//end_lab = img_lab.end<Vec3b>();
+	it_grey = bufferItem.data.begin<uchar>();
+	end_grey = bufferItem.data.end<uchar>();
+	int cnt = 0;
+	for( ; it_grey != end_grey; ++it_grey)
+	{
+		/*if ((*it_lab)[0] > 190) { //Is brightness above a certain level?
+			(*it_grey) = 0;
+		}
+		if (cnt / width_ < 350 || cnt / width_ > height_-350) {
+			(*it_grey) = 0;
+		}*/
+		cnt ++;
 	}
 
 	//printf("Got image");

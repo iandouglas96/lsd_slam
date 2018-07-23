@@ -227,6 +227,7 @@ extern float freeDebugParam5;
 
 extern float KFDistWeight;
 extern float KFUsageWeight;
+extern bool doLoopClosure;
 extern int maxLoopClosureCandidates;
 extern int propagateKeyFrameDepthCount;
 extern float loopclosureStrictness;
@@ -249,6 +250,9 @@ extern bool saveAllTrackingStages;
 extern bool saveAllTrackingStagesInternal;
 
 extern bool continuousPCOutput;
+
+extern bool doConstrainCrossSection;
+extern float lidarDepthCovariance;
 
 
 /// Relative path of calibration file, map saving directory etc. for live_odometry

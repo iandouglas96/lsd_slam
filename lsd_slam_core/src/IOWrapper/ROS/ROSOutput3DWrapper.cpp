@@ -83,7 +83,7 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	int w = f->width(publishLvl);
 	int h = f->height(publishLvl);
 
-	memcpy(fMsg.camToWorld.data(),f->getScaledCamToWorld().cast<float>().data(),sizeof(float)*7);
+	memcpy(fMsg.camToWorld.data(),f->getScaledCamToWorld().cast<float>().data(),sizeof(float)*6);
 	fMsg.fx = f->fx(publishLvl);
 	fMsg.fy = f->fy(publishLvl);
 	fMsg.cx = f->cx(publishLvl);
@@ -123,7 +123,7 @@ void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf)
 	fMsg.isKeyframe = false;
 
 
-	memcpy(fMsg.camToWorld.data(),kf->getScaledCamToWorld().cast<float>().data(),sizeof(float)*7);
+	memcpy(fMsg.camToWorld.data(),kf->getScaledCamToWorld().cast<float>().data(),sizeof(float)*6);
 	fMsg.fx = kf->fx(publishLvl);
 	fMsg.fy = kf->fy(publishLvl);
 	fMsg.cx = kf->cx(publishLvl);
@@ -192,7 +192,7 @@ void ROSOutput3DWrapper::publishKeyframeGraph(KeyFrameGraph* graph)
 	for(unsigned int i=0;i<graph->keyframesAll.size();i++)
 	{
 		framePoseData[i].id = graph->keyframesAll[i]->id();
-		memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->getScaledCamToWorld().cast<float>().data(),sizeof(float)*7);
+		memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->getScaledCamToWorld().cast<float>().data(),sizeof(float)*6);
 	}
 	graph->keyframesAllMutex.unlock_shared();
 

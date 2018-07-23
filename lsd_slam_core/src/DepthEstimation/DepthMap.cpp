@@ -644,44 +644,8 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 			}
 		}
 	
-	DepthMapPixelHypothesis* currDepth;
-	DepthMapPixelHypothesis* lidarDepth;
-	double diff = 0;
-	double cnt = 0;
-	for (int i=0; i<width*height; i++) {
-		currDepth = otherDepthMap + i;
-		lidarDepth = lidarDepthMap + i;
-
-		if (lidarDepth->isValid) {
-			if (currDepth->isValid) {
-				if (currDepth->idepth > 0){
-					diff += lidarDepth->idepth / currDepth->idepth;
-					cnt++;
-				}
-
-				// merge idepth ekf-style
-				float w = 0.001 / (currDepth->idepth_var + 0.001);
-				float merged_new_idepth = w*currDepth->idepth + (1.0f-w)*lidarDepth->idepth;
-
-				*currDepth = DepthMapPixelHypothesis(
-						merged_new_idepth,
-						1.0f/(1.0f/currDepth->idepth_var + 1.0f/0.001),
-						VALIDITY_COUNTER_MAX+(VALIDITY_COUNTER_MAX_VARIABLE));
-				//printf("%f, %f\n", lidarDepth->idepth, currDepth->idepth);
-			} else {
-				*currDepth = DepthMapPixelHypothesis(
-						lidarDepth->idepth,
-						0.001,
-						VALIDITY_COUNTER_MAX+(VALIDITY_COUNTER_MAX_VARIABLE));
-			}
-		}
-		
-	}
 	
-	diff /= cnt;
-
-	printf("scale error: %f, cnt: %f\n", diff, cnt);
-
+	updateMapWithLidar(otherDepthMap);
 	// swap!
 	std::swap(currentDepthMap, otherDepthMap);
 
@@ -701,6 +665,48 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 	}
 }
 
+void DepthMap::updateMapWithLidar(DepthMapPixelHypothesis* original)
+{
+	DepthMapPixelHypothesis* currDepth;
+	DepthMapPixelHypothesis* lidarDepth;
+	double diff = 0;
+	double cnt = 0;
+	for (int i=0; i<width*height; i++) {
+		currDepth = original + i;
+		lidarDepth = lidarDepthMap + i;
+
+		if (lidarDepth->isValid) {
+			float idepth_cov_lidar = lidarDepthCovariance*lidarDepth->idepth*lidarDepth->idepth;
+
+			if (currDepth->isValid) {
+				if (currDepth->idepth > 0){
+					diff += lidarDepth->idepth / currDepth->idepth;
+					cnt++;
+				}
+
+				// merge idepth ekf-style
+				float w = idepth_cov_lidar / (currDepth->idepth_var + idepth_cov_lidar);
+				float merged_new_idepth = w*currDepth->idepth + (1.0f-w)*lidarDepth->idepth;
+
+				*currDepth = DepthMapPixelHypothesis(
+						merged_new_idepth,
+						1.0f/(1.0f/currDepth->idepth_var + 1.0f/idepth_cov_lidar),
+						VALIDITY_COUNTER_MAX+(VALIDITY_COUNTER_MAX_VARIABLE));
+				//printf("%f, %f\n", lidarDepth->idepth, currDepth->idepth);
+			} else {
+				*currDepth = DepthMapPixelHypothesis(
+						lidarDepth->idepth,
+						idepth_cov_lidar,
+						VALIDITY_COUNTER_MAX+(VALIDITY_COUNTER_MAX_VARIABLE));
+			}
+		}
+		
+	}
+	
+	diff /= cnt;
+
+	//printf("scale error: %f, cnt: %f\n", diff, cnt);
+}
 
 void DepthMap::regularizeDepthMapFillHolesRow(int yMin, int yMax, RunningStats* stats)
 {

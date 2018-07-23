@@ -32,6 +32,7 @@ int privateFramePoseStructAllocCount = 0;
 
 FramePoseStruct::FramePoseStruct(Frame* frame)
 {
+	//printf("ALLOCATING pose %d\n", frame->id());
 	cacheValidFor = -1;
 	isOptimized = false;
 	thisToParent_raw = camToWorld = camToWorld_new = SE3();
@@ -45,15 +46,15 @@ FramePoseStruct::FramePoseStruct(Frame* frame)
 	this->graphVertex = nullptr;
 
 	privateFramePoseStructAllocCount++;
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("ALLOCATED pose %d, now there are %d\n", frameID, privateFramePoseStructAllocCount);
+	//if(enablePrintDebugInfo && printMemoryDebugInfo)
+		//printf("ALLOCATED pose %d, now there are %d\n", frameID, privateFramePoseStructAllocCount);
 }
 
 FramePoseStruct::~FramePoseStruct()
 {
 	privateFramePoseStructAllocCount--;
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("DELETED pose %d, now there are %d\n", frameID, privateFramePoseStructAllocCount);
+	//if(enablePrintDebugInfo && printMemoryDebugInfo)
+		//printf("DELETED pose %d, now there are %d\n", frameID, privateFramePoseStructAllocCount);
 }
 
 void FramePoseStruct::setPoseGraphOptResult(SE3 camToWorld)
@@ -83,6 +84,7 @@ void FramePoseStruct::invalidateCache()
 }
 SE3 FramePoseStruct::getCamToWorld(int recursionDepth)
 {
+	//printf("Getting pose of frame %d\n", frameID);
 	// prevent stack overflow
 	assert(recursionDepth < 5000);
 

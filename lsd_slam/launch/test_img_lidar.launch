@@ -2,11 +2,12 @@
 
 <launch>
   <!-- Run from rosbag -->
-  <arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/desk_img_lidar_2018-07-16-09-48-13.bag"/>
-  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet $(arg bagfile_path) --rate=0.3 --start=0 --clock"/>
+  <arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/hallway_datasets/hallway_img_lidar_smooth_2018-07-19-17-23-02.bag"/>
+  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet $(arg bagfile_path) --rate=0.3 --start=5 --clock"/>
 
   <!-- Run in realtime -->
-  <!--<include file="$(find flea3)/launch/single_node.launch">
+  <!--
+  <include file="$(find flea3)/launch/single_node.launch">
     <arg name="device" value="16061374"/>
   </include>
 
@@ -19,7 +20,7 @@
   <include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>-->
 
   <!-- LSD SLAM system -->
-  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
+  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" launch-prefix="gdb --ex run --args" output="screen">
     <remap from="image" to="/pg_16061374/image_rect"/>
     <remap from="camera_info" to="/pg_16061374/camera_info"/>
     <remap from="pointcloud" to="/velodyne_point_cloud"/>

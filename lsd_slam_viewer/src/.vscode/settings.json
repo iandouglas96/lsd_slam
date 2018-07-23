@@ -2,6 +2,11 @@
     "files.associations": {
         "deque": "cpp",
         "vector": "cpp",
-        "array": "cpp"
-    }
+        "array": "cpp",
+        "string_view": "cpp"
+    },
+    "python.autoComplete.extraPaths": [
+        "/home/ian/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ]
 }

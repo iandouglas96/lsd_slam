@@ -18,7 +18,7 @@
 * along with LSD-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Sim3Tracker.h"
+#include "SE3DepthTracker.h"
 #include <opencv2/highgui/highgui.hpp>
 #include "DataStructures/Frame.h"
 #include "Tracking/TrackingReference.h"
@@ -42,7 +42,7 @@ namespace lsd_slam
 
 
 
-Sim3Tracker::Sim3Tracker(int w, int h, Eigen::Matrix3f K)
+SE3DepthTracker::SE3DepthTracker(int w, int h, Eigen::Matrix3f K)
 {
 	width = w;
 	height = h;
@@ -107,7 +107,7 @@ Sim3Tracker::Sim3Tracker(int w, int h, Eigen::Matrix3f K)
 
 }
 
-Sim3Tracker::~Sim3Tracker()
+SE3DepthTracker::~SE3DepthTracker()
 {
 	debugImageResiduals.release();
 	debugImageWeights.release();
@@ -146,10 +146,10 @@ Sim3Tracker::~Sim3Tracker()
 }
 
 
-Sim3 Sim3Tracker::trackFrameSim3(
+SE3 SE3DepthTracker::trackFrameSE3Depth(
 		TrackingReference* reference,
 		Frame* frame,
-		const Sim3& frameToReference_initialEstimate,
+		const SE3& frameToReference_initialEstimate,
 		int startLevel, int finalLevel)
 {
 	boost::shared_lock<boost::shared_mutex> lock = frame->getActiveLock();
@@ -161,14 +161,14 @@ Sim3 Sim3Tracker::trackFrameSim3(
 
 
 	// ============ track frame ============
-    Sim3 referenceToFrame = frameToReference_initialEstimate.inverse();
-	LGS7 ls7;
+    SE3 referenceToFrame = frameToReference_initialEstimate.inverse();
+	LGS6 ls6;
 
 
 	int numCalcResidualCalls[PYRAMID_LEVELS];
 	int numCalcWarpUpdateCalls[PYRAMID_LEVELS];
 
-	Sim3ResidualStruct finalResidual;
+	SE3DepthResidualStruct finalResidual;
 
 	bool warp_update_up_to_date = false;
 
@@ -183,15 +183,14 @@ Sim3 Sim3Tracker::trackFrameSim3(
 		reference->makePointCloud(lvl);
 
 		// evaluate baseline-residual.
-		callOptimized(calcSim3Buffers, (reference, frame, referenceToFrame, lvl));
+		callOptimized(calcSE3DepthBuffers, (reference, frame, referenceToFrame, lvl));
 		if(buf_warped_size < 0.5 * MIN_GOODPERALL_PIXEL_ABSMIN * (width>>lvl)*(height>>lvl) || buf_warped_size < 10)
 		{
 			diverged = true;
-			return Sim3();
+			return SE3();
 		}
 
-		Sim3ResidualStruct lastErr = callOptimized(calcSim3WeightsAndResidual,(referenceToFrame));
-		if(plotSim3TrackingIterationInfo) callOptimized(calcSim3Buffers,(reference, frame, referenceToFrame, lvl, true));
+		SE3DepthResidualStruct lastErr = callOptimized(calcSE3DepthWeightsAndResidual,(referenceToFrame));
 		numCalcResidualCalls[lvl]++;
 
 		if(useAffineLightningEstimation)
@@ -207,7 +206,7 @@ Sim3 Sim3Tracker::trackFrameSim3(
 		{
 
 			// calculate LS System, result is saved in ls.
-			callOptimized(calcSim3LGS,(ls7));
+			callOptimized(calcSE3DepthLGS,(ls6));
 			warp_update_up_to_date = true;
 			numCalcWarpUpdateCalls[lvl]++;
 
@@ -218,35 +217,34 @@ Sim3 Sim3Tracker::trackFrameSim3(
 			while(true)
 			{
 				// solve LS system with current lambda
-				Vector7 b = - ls7.b / ls7.num_constraints;
-				Matrix7x7 A = ls7.A / ls7.num_constraints;
-				for(int i=0;i<7;i++) A(i,i) *= 1+LM_lambda;
-				Vector7 inc = A.ldlt().solve(b);
+				Vector6 b = - ls6.b / ls6.num_constraints;
+				Matrix6x6 A = ls6.A / ls6.num_constraints;
+				for(int i=0;i<6;i++) A(i,i) *= 1+LM_lambda;
+				Vector6 inc = A.ldlt().solve(b);
 				incTry++;
 
 				float absInc = inc.dot(inc);
 				if(!(absInc >= 0 && absInc < 1))
 				{
 					// ERROR tracking diverged.
-					lastSim3Hessian.setZero();
-					return Sim3();
+					lastSE3DepthHessian.setZero();
+					return SE3();
 				}
 
 				// apply increment. pretty sure this way round is correct, but hard to test.
-				Sim3 new_referenceToFrame =Sim3::exp(inc.cast<sophusType>()) * referenceToFrame;
-				//Sim3 new_referenceToFrame = referenceToFrame * Sim3::exp((inc));
+				SE3 new_referenceToFrame =SE3::exp(inc.cast<sophusType>()) * referenceToFrame;
+				//Sim3 new_referenceToFrame = referenceToFrame * SE3::exp((inc));
 
 
 				// re-evaluate residual
-				callOptimized(calcSim3Buffers,(reference, frame, new_referenceToFrame, lvl));
+				callOptimized(calcSE3DepthBuffers,(reference, frame, new_referenceToFrame, lvl));
 				if(buf_warped_size < 0.5 * MIN_GOODPERALL_PIXEL_ABSMIN * (width>>lvl)*(height>>lvl) || buf_warped_size < 10)
 				{
 					diverged = true;
-					return Sim3();
+					return SE3();
 				}
 
-				Sim3ResidualStruct error = callOptimized(calcSim3WeightsAndResidual,(new_referenceToFrame));
-				if(plotSim3TrackingIterationInfo) callOptimized(calcSim3Buffers,(reference, frame, new_referenceToFrame, lvl, true));
+				SE3DepthResidualStruct error = callOptimized(calcSE3DepthWeightsAndResidual,(new_referenceToFrame));
 				numCalcResidualCalls[lvl]++;
 
 
@@ -269,10 +267,9 @@ Sim3 Sim3Tracker::trackFrameSim3(
 						printf("(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
 								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr.mean, error.mean);
 
-						printf("         p=%.4f %.4f %.4f %.4f %.4f %.4f %.4f\n",
+						printf("         p=%.4f %.4f %.4f %.4f %.4f %.4f\n",
 								referenceToFrame.log()[0],referenceToFrame.log()[1],referenceToFrame.log()[2],
-								referenceToFrame.log()[3],referenceToFrame.log()[4],referenceToFrame.log()[5],
-								referenceToFrame.log()[6]);
+								referenceToFrame.log()[3],referenceToFrame.log()[4],referenceToFrame.log()[5]);
 					}
 
 					// converged?
@@ -355,19 +352,12 @@ Sim3 Sim3Tracker::trackFrameSim3(
 	if (!warp_update_up_to_date)
 	{
 		reference->makePointCloud(finalLevel);
-		callOptimized(calcSim3Buffers,(reference, frame, referenceToFrame, finalLevel));
-	    finalResidual = callOptimized(calcSim3WeightsAndResidual,(referenceToFrame));
-	    callOptimized(calcSim3LGS,(ls7));
+		callOptimized(calcSE3DepthBuffers,(reference, frame, referenceToFrame, finalLevel));
+	    finalResidual = callOptimized(calcSE3DepthWeightsAndResidual,(referenceToFrame));
+	    callOptimized(calcSE3DepthLGS,(ls6));
 	}
 
-	lastSim3Hessian = ls7.A;
-
-
-	if(referenceToFrame.scale() <= 0 )
-	{
-		diverged = true;
-		return Sim3();
-	}
+	lastSE3DepthHessian = ls6.A;
 
 	lastResidual = finalResidual.mean;
 	lastDepthResidual = finalResidual.meanD;
@@ -381,13 +371,13 @@ Sim3 Sim3Tracker::trackFrameSim3(
 
 
 #if defined(ENABLE_SSE)
-void Sim3Tracker::calcSim3BuffersSSE(
+void SE3DepthTracker::calcSE3DepthBuffersSSE(
 		const TrackingReference* reference,
 		Frame* frame,
-		const Sim3& referenceToFrame,
+		const SE3& referenceToFrame,
 		int level, bool plotWeights)
 {
-	calcSim3Buffers(
+	calcSE3DepthBuffers(
 			reference,
 			frame,
 			referenceToFrame,
@@ -396,7 +386,7 @@ void Sim3Tracker::calcSim3BuffersSSE(
 #endif
 
 #if defined(ENABLE_NEON)
-void Sim3Tracker::calcSim3BuffersNEON(
+void SE3DepthTracker::calcSim3BuffersNEON(
 		const TrackingReference* reference,
 		Frame* frame,
 		const Sim3& referenceToFrame,
@@ -411,29 +401,12 @@ void Sim3Tracker::calcSim3BuffersNEON(
 #endif
 
 
-void Sim3Tracker::calcSim3Buffers(
+void SE3DepthTracker::calcSE3DepthBuffers(
 		const TrackingReference* reference,
 		Frame* frame,
-		const Sim3& referenceToFrame,
+		const SE3& referenceToFrame,
 		int level, bool plotWeights)
 {
-	if(plotSim3TrackingIterationInfo)
-	{
-		cv::Vec3b col = cv::Vec3b(255,170,168);
-		fillCvMat(&debugImageResiduals,col);
-		fillCvMat(&debugImageOldImageSource,col);
-		fillCvMat(&debugImageOldImageWarped,col);
-		fillCvMat(&debugImageDepthResiduals,col);
-	}
-	if(plotWeights && plotSim3TrackingIterationInfo)
-	{
-		cv::Vec3b col = cv::Vec3b(255,170,168);
-		fillCvMat(&debugImageHuberWeight,col);
-		fillCvMat(&debugImageWeightD,col);
-		fillCvMat(&debugImageWeightP,col);
-		fillCvMat(&debugImageWeightedResP,col);
-		fillCvMat(&debugImageWeightedResD,col);
-	}
 
 	// get static values
 	int w = frame->width(level);
@@ -444,7 +417,7 @@ void Sim3Tracker::calcSim3Buffers(
 	float cx_l = KLvl(0,2);
 	float cy_l = KLvl(1,2);
 
-	Eigen::Matrix3f rotMat = referenceToFrame.rxso3().matrix().cast<float>();
+	Eigen::Matrix3f rotMat = referenceToFrame.so3().matrix().cast<float>();
 	Eigen::Matrix3f rotMatUnscaled = referenceToFrame.rotationMatrix().cast<float>();
 	Eigen::Vector3f transVec = referenceToFrame.translation().cast<float>();
 
@@ -537,7 +510,7 @@ void Sim3Tracker::calcSim3Buffers(
 		*(buf_idepthVar+idx) = (*refColVar)[1];
 
 
-		// new (only for Sim3):
+		// new (only for depth):
 		int idx_rounded = (int)(u_new+0.5f) + w*(int)(v_new+0.5f);
 		float var_frameDepth = frame_idepthVar[idx_rounded];
 		float ref_idepth = 1.0f / Wxp[2];
@@ -554,40 +527,6 @@ void Sim3Tracker::calcSim3Buffers(
 			*(buf_warped_idepthVar+idx) = -1;
 		}
 
-
-		// DEBUG STUFF
-		if(plotSim3TrackingIterationInfo)
-		{
-			// for debug plot only: find x,y again.
-			// horribly inefficient, but who cares at this point...
-			Eigen::Vector3f point = KLvl * (*refPoint);
-			int x = point[0] / point[2] + 0.5f;
-			int y = point[1] / point[2] + 0.5f;
-
-			setPixelInCvMat(&debugImageOldImageSource,getGrayCvPixel((float)resInterp[2]),u_new+0.5,v_new+0.5,(width/w));
-			setPixelInCvMat(&debugImageOldImageWarped,getGrayCvPixel((float)resInterp[2]),x,y,(width/w));
-			setPixelInCvMat(&debugImageResiduals,getGrayCvPixel(residual_p+128),x,y,(width/w));
-
-			if(*(buf_warped_idepthVar+idx) >= 0)
-			{
-				setPixelInCvMat(&debugImageDepthResiduals,getGrayCvPixel(128 + 800 * *(buf_residual_d+idx)),x,y,(width/w));
-
-				if(plotWeights)
-				{
-					setPixelInCvMat(&debugImageWeightD,getGrayCvPixel(255 * (1/60.0f) * sqrtf(*(buf_weight_VarD+idx))),x,y,(width/w));
-					setPixelInCvMat(&debugImageWeightedResD,getGrayCvPixel(128 + (128/5.0f) * sqrtf(*(buf_weight_VarD+idx)) * *(buf_residual_d+idx)),x,y,(width/w));
-				}
-			}
-
-
-			if(plotWeights)
-			{
-				setPixelInCvMat(&debugImageWeightP,getGrayCvPixel(255 * 4 * sqrtf(*(buf_weight_VarP+idx))),x,y,(width/w));
-				setPixelInCvMat(&debugImageHuberWeight,getGrayCvPixel(255 * *(buf_weight_Huber+idx)),x,y,(width/w));
-				setPixelInCvMat(&debugImageWeightedResP,getGrayCvPixel(128 + (128/5.0f) * sqrtf(*(buf_weight_VarP+idx)) * *(buf_warped_residual+idx)),x,y,(width/w));
-			}
-		}
-
 		idx++;
 
 		float depthChange = (*refPoint)[2] / Wxp[2];
@@ -601,29 +540,12 @@ void Sim3Tracker::calcSim3Buffers(
 	affineEstimation_a_lastIt = sqrtf((syy - sy*sy/sw) / (sxx - sx*sx/sw));
 	affineEstimation_b_lastIt = (sy - affineEstimation_a_lastIt*sx)/sw;
 
-
-
-	if(plotSim3TrackingIterationInfo)
-	{
-		Util::displayImage( "P Residuals", debugImageResiduals );
-		Util::displayImage( "D Residuals", debugImageDepthResiduals );
-
-		if(plotWeights)
-		{
-			Util::displayImage( "Huber Weights", debugImageHuberWeight );
-			Util::displayImage( "DV Weights", debugImageWeightD );
-			Util::displayImage( "IV Weights", debugImageWeightP );
-			Util::displayImage( "WP Res", debugImageWeightedResP );
-			Util::displayImage( "WD Res", debugImageWeightedResD );
-		}
-	}
-
 }
 
 
 #if defined(ENABLE_SSE)
-Sim3ResidualStruct Sim3Tracker::calcSim3WeightsAndResidualSSE(
-		const Sim3& referenceToFrame)
+SE3DepthResidualStruct SE3DepthTracker::calcSE3DepthWeightsAndResidualSSE(
+		const SE3& referenceToFrame)
 {
 
 	const __m128 txs = _mm_set1_ps((float)(referenceToFrame.translation()[0]));
@@ -646,8 +568,8 @@ Sim3ResidualStruct Sim3Tracker::calcSim3WeightsAndResidualSSE(
 
 
 
-	Sim3ResidualStruct sumRes;
-	memset(&sumRes, 0, sizeof(Sim3ResidualStruct));
+	SE3DepthResidualStruct sumRes;
+	memset(&sumRes, 0, sizeof(SE3DepthResidualStruct));
 
 
 	for(int i=0;i<buf_warped_size-3;i+=4)
@@ -750,7 +672,7 @@ Sim3ResidualStruct Sim3Tracker::calcSim3WeightsAndResidualSSE(
 #endif
 
 #if defined(ENABLE_NEON)
-Sim3ResidualStruct Sim3Tracker::calcSim3WeightsAndResidualNEON(
+Sim3ResidualStruct SE3DepthTracker::calcSim3WeightsAndResidualNEON(
 		const Sim3& referenceToFrame)
 {
 	return calcSim3WeightsAndResidual(
@@ -759,15 +681,15 @@ Sim3ResidualStruct Sim3Tracker::calcSim3WeightsAndResidualNEON(
 #endif
 
 
-Sim3ResidualStruct Sim3Tracker::calcSim3WeightsAndResidual(
-		const Sim3& referenceToFrame)
+SE3DepthResidualStruct SE3DepthTracker::calcSE3DepthWeightsAndResidual(
+		const SE3& referenceToFrame)
 {
 	float tx = referenceToFrame.translation()[0];
 	float ty = referenceToFrame.translation()[1];
 	float tz = referenceToFrame.translation()[2];
 
-	Sim3ResidualStruct sumRes;
-	memset(&sumRes, 0, sizeof(Sim3ResidualStruct));
+	SE3DepthResidualStruct sumRes;
+	memset(&sumRes, 0, sizeof(SE3DepthResidualStruct));
 
 
 	float sum_rd=0, sum_rp=0, sum_wrd=0, sum_wrp=0, sum_wp=0, sum_wd=0, sum_num_d=0, sum_num_p=0;
@@ -817,29 +739,6 @@ Sim3ResidualStruct Sim3Tracker::calcSim3WeightsAndResidual(
 		sumRes.sumResP += wh * w_p * rp*rp;
 		sumRes.numTermsP++;
 
-
-		if(plotSim3TrackingIterationInfo)
-		{
-			// for debug
-			*(buf_weight_Huber+i) = wh;
-			*(buf_weight_VarP+i) = w_p;
-			*(buf_weight_VarD+i) = sv > 0 ? w_d : 0;
-
-
-			sum_rp += fabs(rp);
-			sum_wrp += fabs(weighted_rp);
-			sum_wp += sqrtf(w_p);
-			sum_num_p++;
-
-			if(sv > 0)
-			{
-				sum_rd += fabs(weighted_rd);
-				sum_wrd += fabs(rd);
-				sum_wd += sqrtf(w_d);
-				sum_num_d++;
-			}
-		}
-
 		*(buf_weight_p+i) = wh * w_p;
 
 		if(sv > 0)
@@ -853,23 +752,13 @@ Sim3ResidualStruct Sim3Tracker::calcSim3WeightsAndResidual(
 	sumRes.meanD = (sumRes.sumResD) / (sumRes.numTermsD);
 	sumRes.meanP = (sumRes.sumResP) / (sumRes.numTermsP);
 
-	if(plotSim3TrackingIterationInfo)
-	{
-		printf("rd %f, rp %f, wrd %f, wrp %f, wd %f, wp %f\n ",
-				sum_rd/sum_num_d,
-				sum_rp/sum_num_p,
-				sum_wrd/sum_num_d,
-				sum_wrp/sum_num_p,
-				sum_wd/sum_num_d,
-				sum_wp/sum_num_p);
-	}
 	return sumRes;
 }
 
 
 
 #if defined(ENABLE_SSE)
-void Sim3Tracker::calcSim3LGSSSE(LGS7 &ls7)
+void SE3DepthTracker::calcSE3DepthLGSSSE(LGS6 &ls)
 {
 	LGS4 ls4;
 	LGS6 ls6;
@@ -989,24 +878,24 @@ void Sim3Tracker::calcSim3LGSSSE(LGS7 &ls7)
 
 	ls4.finishNoDivide();
 	ls6.finishNoDivide();
-	ls7.initializeFrom(ls6, ls4);
+	ls.initializeFrom(ls6, ls4);
 
 
 }
 #endif
 
 #if defined(ENABLE_NEON)
-void Sim3Tracker::calcSim3LGSNEON(LGS7 &ls7)
+void SE3DepthTracker::calcSim3LGSNEON(LGS7 &ls7)
 {
 	calcSim3LGS(ls7);
 }
 #endif
 
 
-void Sim3Tracker::calcSim3LGS(LGS7 &ls7)
+void SE3DepthTracker::calcSE3DepthLGS(LGS6 &ls)
 {
-	LGS4 ls4;
-	LGS6 ls6;
+    LGS4 ls4;
+    LGS6 ls6;
 	ls6.initialize(width*height);
 	ls4.initialize(width*height);
 
@@ -1056,11 +945,11 @@ void Sim3Tracker::calcSim3LGS(LGS7 &ls7)
 	ls6.finishNoDivide();
 
 
-	ls7.initializeFrom(ls6, ls4);
+	ls.initializeFrom(ls6, ls4);
 
 }
 
-void Sim3Tracker::calcResidualAndBuffers_debugStart()
+void SE3DepthTracker::calcResidualAndBuffers_debugStart()
 {
 	if(plotTrackingIterationInfo || saveAllTrackingStagesInternal)
 	{
@@ -1075,7 +964,7 @@ void Sim3Tracker::calcResidualAndBuffers_debugStart()
 	}
 }
 
-void Sim3Tracker::calcResidualAndBuffers_debugFinish(int w)
+void SE3DepthTracker::calcResidualAndBuffers_debugFinish(int w)
 {
 	if(plotTrackingIterationInfo)
 	{

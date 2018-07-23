@@ -13,8 +13,10 @@
 
   <include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>
 
+  <include file="$(find imu_3dm_gx4)/launch/imu.launch"/>
+
   <!-- Record everything -->
   <node pkg="rosbag" type="record" name="rosbag_record"
-    args="record -o /media/ian/ExtHDD/InspectionData/desk_img_lidar /velodyne_point_cloud /pg_16061374/image_rect /pg_16061374/camera_info"
+    args="record -o /media/ian/ExtHDD/InspectionData/hallway_datasets/hallway_img_lidar /velodyne_point_cloud /pg_16061374/image_raw /pg_16061374/image_rect /pg_16061374/camera_info /imu/imu /imu/magnetic_field"
   />
 </launch>

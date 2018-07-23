@@ -7,7 +7,7 @@ project(lsd_slam_core)
 #  Release : w/o debug symbols, w/ optimization
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel : w/o debug symbols, w/ optimization, stripped binaries
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
@@ -85,6 +85,7 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/Tracking/Sim3Tracker.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/Relocalizer.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/SE3Tracker.cpp
+  ${PROJECT_SOURCE_DIR}/src/Tracking/SE3DepthTracker.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/TrackingReference.cpp
   ${PROJECT_SOURCE_DIR}/src/IOWrapper/Timestamp.cpp
   ${PROJECT_SOURCE_DIR}/src/GlobalMapping/FabMap.cpp

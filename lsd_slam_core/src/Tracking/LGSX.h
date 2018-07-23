@@ -202,6 +202,28 @@ public:
     this->num_constraints = 0;
   }
 
+  void initializeFrom(const LGS6& ls6, const LGS4& ls4)
+  {
+  	// set zero
+  	A.setZero();
+  	b.setZero();
+
+  	// add ls6
+  	A.topLeftCorner<6,6>() = ls6.A;
+  	b.head<6>() = ls6.b;
+
+  	// add ls4
+  	int remap[4] = {2,3,4,6};
+  	for(int i=0;i<3;i++)
+  	{
+  		b[remap[i]] += ls4.b[i];
+  		for(int j=0;j<4;j++)
+  			A(remap[i], remap[j]) += ls4.A(i,j);
+  	}
+
+  	num_constraints = ls6.num_constraints + ls4.num_constraints;
+  }
+
   inline void finishNoDivide()
   {
 
