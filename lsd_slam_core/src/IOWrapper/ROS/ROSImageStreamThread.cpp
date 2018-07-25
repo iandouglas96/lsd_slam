@@ -123,8 +123,8 @@ SE3NoX ROSImageStreamThread::getTransform()
 	Eigen::Vector2d trans(tf_transform.getOrigin().getY(), tf_transform.getOrigin().getZ());
 	tf2::convert(tf_transform.getRotation(), quat);
 
-	//return SE3NoX(quat, trans);
-	return SE3NoX(0,0,0,0,0);
+	return SE3NoX(quat, trans);
+	//return SE3NoX(0,0,0,0,0);
 }
 
 float ROSImageStreamThread::calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform)
@@ -258,7 +258,7 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 	//Need camera matrix to do anything useful with data
 	if (!haveCalib) return;
 
-	ROS_INFO("Got Pointcloud...");
+	//ROS_INFO("Got Pointcloud...");
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr pc =
 		pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>);
@@ -322,23 +322,23 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 	}
 
 	//Convert to CIE L*a*b* (takes 2 steps)
-	/*cv::Mat img_lab;
+	cv::Mat img_lab;
 	cvtColor(bufferItem.data, img_lab, cv::COLOR_GRAY2RGB);
 	cvtColor(img_lab, img_lab, cv::COLOR_RGB2Lab);
 	//Scan through image pixels
-	cv::MatIterator_<Vec3b> it_lab, end_lab;*/
+	cv::MatIterator_<Vec3b> it_lab, end_lab;
 	cv::MatIterator_<uchar> it_grey, end_grey;
-	//it_lab = img_lab.begin<Vec3b>();
-	//end_lab = img_lab.end<Vec3b>();
+	it_lab = img_lab.begin<Vec3b>();
+	end_lab = img_lab.end<Vec3b>();
 	it_grey = bufferItem.data.begin<uchar>();
 	end_grey = bufferItem.data.end<uchar>();
 	int cnt = 0;
-	for( ; it_grey != end_grey; ++it_grey)
+	for( ; it_grey != end_grey, it_lab != end_lab; ++it_grey, ++it_lab)
 	{
-		/*if ((*it_lab)[0] > 190) { //Is brightness above a certain level?
+		if ((*it_lab)[0] > maskBrightnessLimit) { //Is brightness above a certain level?
 			(*it_grey) = 0;
 		}
-		if (cnt / width_ < 70 || cnt / width_ > height_-70 || (cnt / width_ < height_/2+70 && cnt / width_ > height_/2-70)) {
+		/*if (cnt / width_ < height_/2-100 && cnt / width_ > height_/2-300) {
 			(*it_grey) = 0;
 		}*/
 		cnt ++;

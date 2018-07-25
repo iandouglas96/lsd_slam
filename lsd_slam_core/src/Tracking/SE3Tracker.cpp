@@ -391,7 +391,7 @@ SE3 SE3Tracker::trackFrame(
 					}
 
 
-					if(enablePrintDebugInfo && printTrackingIterationInfo)
+					if(enablePrintDebugInfo && printTrackingIterationInfoSE3)
 					{
 						// debug output
 						printf("(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
@@ -405,7 +405,7 @@ SE3 SE3Tracker::trackFrame(
 					// converged?
 					if(error / lastErr > settings.convergenceEps[lvl])
 					{
-						if(enablePrintDebugInfo && printTrackingIterationInfo)
+						if(enablePrintDebugInfo && printTrackingIterationInfoSE3)
 						{
 							printf("(%d-%d): FINISHED pyramid level (last residual reduction too small).\n",
 									lvl,iteration);
@@ -425,7 +425,7 @@ SE3 SE3Tracker::trackFrame(
 				}
 				else
 				{
-					if(enablePrintDebugInfo && printTrackingIterationInfo)
+					if(enablePrintDebugInfo && printTrackingIterationInfoSE3)
 					{
 						printf("(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f)\n",
 								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
@@ -433,7 +433,7 @@ SE3 SE3Tracker::trackFrame(
 
 					if(!(inc.dot(inc) > settings.stepSizeMin[lvl]))
 					{
-						if(enablePrintDebugInfo && printTrackingIterationInfo)
+						if(enablePrintDebugInfo && printTrackingIterationInfoSE3)
 						{
 							printf("(%d-%d): FINISHED pyramid level (stepsize too small).\n",
 									lvl,iteration);
@@ -456,7 +456,7 @@ SE3 SE3Tracker::trackFrame(
 		Util::displayImage("TrackingResidual", debugImageResiduals, false);
 
 
-	if(enablePrintDebugInfo && printTrackingIterationInfo)
+	if(enablePrintDebugInfo && printTrackingIterationInfoSE3)
 	{
 		printf("Tracking: ");
 			for(int lvl=PYRAMID_LEVELS-1;lvl >= 0;lvl--)

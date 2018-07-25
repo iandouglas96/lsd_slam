@@ -1078,6 +1078,8 @@ float SlamSystem::tryTrackSE3Depth(
 	if (constraintDepthTracker->diverged||
 		BtoAInfo(0,0) == 0)
 	{
+		if(enablePrintDebugInfo && printConstraintSearchInfo)
+			std::cout << "Tracking failed, BtoA hessian matrix is: \n" << BtoAInfo << "\n";
 		return 1e20;
 	}
 
@@ -1146,6 +1148,7 @@ void SlamSystem::testConstraint(
 			SIM3TRACKING_MAX_LEVEL-1, 3,
 			USESSE,
 			FtoC, CtoF);
+
 
 	if(err_level3 > 3000*strictness)
 	{

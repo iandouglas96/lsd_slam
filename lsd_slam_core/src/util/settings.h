@@ -41,12 +41,6 @@ namespace lsd_slam
 #endif
 
 
-#if defined(NDEBUG)
-	#define enablePrintDebugInfo false
-#else
-	#define enablePrintDebugInfo true
-#endif
-
 /** ============== constants for validity handeling ======================= */
 
 // validity can take values between 0 and X, where X depends on the abs. gradient at that location:
@@ -55,7 +49,7 @@ namespace lsd_slam
 #define VALIDITY_COUNTER_MAX_VARIABLE (250.0f)		// validity will never be higher than this
 
 #define VALIDITY_COUNTER_INC 5		// validity is increased by this on sucessfull stereo
-#define VALIDITY_COUNTER_DEC 5		// validity is decreased by this on failed stereo
+#define VALIDITY_COUNTER_DEC 1		// validity is decreased by this on failed stereo
 #define VALIDITY_COUNTER_INITIAL_OBSERVE 5	// initial validity for first observations
 
 
@@ -185,6 +179,8 @@ extern bool doFullReConstraintTrack;
 
 
 // dyn config
+extern bool enablePrintDebugInfo;
+
 extern bool printPropagationStatistics;
 extern bool printFillHolesStatistics;
 extern bool printObserveStatistics;
@@ -193,7 +189,8 @@ extern bool printRegularizeStatistics;
 extern bool printLineStereoStatistics;
 extern bool printLineStereoFails;
 
-extern bool printTrackingIterationInfo;
+extern bool printTrackingIterationInfoSE3;
+extern bool printTrackingIterationInfoDepth;
 extern bool printThreadingInfo;
 
 extern bool printKeyframeSelectionInfo;
@@ -235,6 +232,7 @@ extern float relocalizationTH;
 
 
 extern float minUseGrad;
+extern int maskBrightnessLimit;
 extern float cameraPixelNoise2;
 extern float depthSmoothingFactor;
 

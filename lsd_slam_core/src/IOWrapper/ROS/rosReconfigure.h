@@ -56,7 +56,8 @@ void dynConfCbDebug(lsd_slam_core::LSDDebugParamsConfig &config, uint32_t level)
 	printFrameBuildDebugInfo = config.printFrameBuildDebugInfo;
 	printMemoryDebugInfo = config.printMemoryDebugInfo;
 
-	printTrackingIterationInfo = config.printTrackingIterationInfo;
+	printTrackingIterationInfoSE3 = config.printTrackingIterationInfoSE3;
+	printTrackingIterationInfoDepth = config.printTrackingIterationInfoDepth;
 	printThreadingInfo = config.printThreadingInfo;
 	printMappingTiming = config.printMappingTiming;
 	printOverallTiming = config.printOverallTiming;

@@ -36,7 +36,7 @@ bool showCurrentPointcloud = true;
 float scaledDepthVarTH = 20;
 float absDepthVarTH = 3;
 int minNearSupport = 5;
-int cutFirstNKf = 5;
+int cutFirstNKf = 0;
 int sparsifyFactor = 1;
 
 bool saveAllVideo = false;

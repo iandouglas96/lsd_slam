@@ -217,7 +217,7 @@ public:
   	for(int i=0;i<3;i++)
   	{
   		b[remap[i]] += ls4.b[i];
-  		for(int j=0;j<4;j++)
+  		for(int j=0;j<3;j++)
   			A(remap[i], remap[j]) += ls4.A(i,j);
   	}
 

@@ -40,6 +40,8 @@ bool dumpMap = false;
 bool doFullReConstraintTrack = false;
 
 // dyn config
+bool enablePrintDebugInfo = true;
+
 bool printPropagationStatistics = true;
 bool printFillHolesStatistics = false;
 bool printObserveStatistics = false;
@@ -48,13 +50,14 @@ bool printRegularizeStatistics = false;
 bool printLineStereoStatistics = false;
 bool printLineStereoFails = false;
 
-bool printTrackingIterationInfo = false;
+bool printTrackingIterationInfoSE3 = false;
+bool printTrackingIterationInfoDepth = false;
 
 bool printFrameBuildDebugInfo = false;
 bool printMemoryDebugInfo = false;
 
 bool printKeyframeSelectionInfo = false;
-bool printConstraintSearchInfo = false;
+bool printConstraintSearchInfo = true;
 bool printOptimizationInfo = false;
 bool printRelocalizationInfo = false;
 
@@ -74,11 +77,12 @@ float freeDebugParam3 = 1;
 float freeDebugParam4 = 1;
 float freeDebugParam5 = 1;
 
-float KFDistWeight = 2;
-float KFUsageWeight = 2;
+float KFDistWeight = 10;
+float KFUsageWeight = 10;
 
-float minUseGrad = 10;
-float cameraPixelNoise2 = 4*4;
+float minUseGrad = 20;
+int maskBrightnessLimit = 200; //200 is off
+float cameraPixelNoise2 = 5*5;
 float depthSmoothingFactor = 1;
 
 bool allowNegativeIdepths = true;

@@ -297,9 +297,9 @@ void KeyFrameGraph::insertConstraint(KFConstraintStruct* constraint)
 
 	totalEdges++;
 
-	std::cout << "New Constraint\n";
+	/*std::cout << "New Constraint\n";
 	std::cout << "Information:\n" << constraint->information << "\n";
-	std::cout << "Measurement:\n" << constraint->secondToFirst.matrix() << "\n";
+	std::cout << "Measurement:\n" << constraint->secondToFirst.matrix() << "\n";*/
 
 	newEdgeBuffer.push_back(constraint);
 

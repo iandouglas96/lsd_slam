@@ -186,6 +186,10 @@ SE3 SE3DepthTracker::trackFrameSE3Depth(
 		callOptimized(calcSE3DepthBuffers, (reference, frame, referenceToFrame, lvl));
 		if(buf_warped_size < 0.5 * MIN_GOODPERALL_PIXEL_ABSMIN * (width>>lvl)*(height>>lvl) || buf_warped_size < 10)
 		{
+			if(enablePrintDebugInfo && printTrackingIterationInfoDepth)
+			{
+				printf("ERROR: Warped image buffer too small\n");
+			}
 			diverged = true;
 			return SE3();
 		}
@@ -227,6 +231,10 @@ SE3 SE3DepthTracker::trackFrameSE3Depth(
 				if(!(absInc >= 0 && absInc < 1))
 				{
 					// ERROR tracking diverged.
+					if(enablePrintDebugInfo && printTrackingIterationInfoDepth)
+					{
+						printf("ERROR: Tracking diverged with absInc: %f\n", absInc);
+					}
 					lastSE3DepthHessian.setZero();
 					return SE3();
 				}
@@ -261,7 +269,7 @@ SE3 SE3DepthTracker::trackFrameSE3Depth(
 						affineEstimation_b = affineEstimation_b_lastIt;
 					}
 
-					if(enablePrintDebugInfo && printTrackingIterationInfo)
+					if(enablePrintDebugInfo && printTrackingIterationInfoDepth)
 					{
 						// debug output
 						printf("(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
@@ -275,7 +283,7 @@ SE3 SE3DepthTracker::trackFrameSE3Depth(
 					// converged?
 					if(error.mean / lastErr.mean > settings.convergenceEps[lvl])
 					{
-						if(enablePrintDebugInfo && printTrackingIterationInfo)
+						if(enablePrintDebugInfo && printTrackingIterationInfoDepth)
 						{
 							printf("(%d-%d): FINISHED pyramid level (last residual reduction too small).\n",
 									lvl,iteration);
@@ -294,7 +302,7 @@ SE3 SE3DepthTracker::trackFrameSE3Depth(
 				}
 				else
 				{
-					if(enablePrintDebugInfo && printTrackingIterationInfo)
+					if(enablePrintDebugInfo && printTrackingIterationInfoDepth)
 					{
 						printf("(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f)\n",
 								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr.mean, error.mean);
@@ -302,7 +310,7 @@ SE3 SE3DepthTracker::trackFrameSE3Depth(
 
 					if(!(inc.dot(inc) > settings.stepSizeMin[lvl]))
 					{
-						if(enablePrintDebugInfo && printTrackingIterationInfo)
+						if(enablePrintDebugInfo && printTrackingIterationInfoDepth)
 						{
 							printf("(%d-%d): FINISHED pyramid level (stepsize too small).\n",
 									lvl,iteration);
@@ -322,7 +330,7 @@ SE3 SE3DepthTracker::trackFrameSE3Depth(
 
 
 
-	if(enablePrintDebugInfo && printTrackingIterationInfo)
+	if(enablePrintDebugInfo && printTrackingIterationInfoDepth)
 	{
 		printf("Tracking: ");
 			for(int lvl=PYRAMID_LEVELS-1;lvl >= 0;lvl--)
