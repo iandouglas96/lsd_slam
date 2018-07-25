@@ -1277,19 +1277,16 @@ void DepthMap::invalidate()
 
 void DepthMap::setLidarDepth(ROSImageStreamThread *depth)
 {
-	std::cout << "Got LIDAR data\n";
+	//std::cout << "Got LIDAR data\n";
 
-	float id, scale;
-
-	scale = 1;
-	printf("scale: %f", scale);
+	float id;
 
 	for(int y=0;y<height;y++) {
 		for(int x=0;x<width;x++) {
 			id = 1/depth->getDepth(x,y);
 			DepthMapPixelHypothesis* pix = lidarDepthMap + x + y*width;
 			if (id > 0) { //valid
-				pix->idepth = id*scale;
+				pix->idepth = id;
 
 				pix->isValid = true;
 			} else { //invalid

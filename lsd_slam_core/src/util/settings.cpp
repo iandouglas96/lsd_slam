@@ -81,7 +81,8 @@ float KFDistWeight = 10;
 float KFUsageWeight = 10;
 
 float minUseGrad = 20;
-int maskBrightnessLimit = 200; //200 is off
+int maskBrightnessLimit = 256; //256 is off
+bool useCLAHE = true;
 float cameraPixelNoise2 = 5*5;
 float depthSmoothingFactor = 1;
 

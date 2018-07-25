@@ -3,8 +3,8 @@
 <launch>
   <!-- Run from rosbag -->
   
-  <arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/hallway_datasets/hallway_img_lidar_smooth_2018-07-19-17-23-02.bag"/>
-  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet $(arg bagfile_path) --rate=0.3 --start=5 --clock"/>
+  <arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/hallway_datasets/hallway_img_lidar_shaky_2018-07-19-17-31-02.bag"/>
+  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet $(arg bagfile_path) --rate=0.1 --start=5 --clock"/>
 
   <!-- Run in realtime -->
   <!--include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>

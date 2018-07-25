@@ -587,7 +587,11 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 
 		undst = undst(roi);
 	}
-	//cv::equalizeHist(undst, undst);
+
+	if (useCLAHE) {
+		cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+		clahe->apply(undst, undst);
+	}
 	if (out_width != in_width) {
 		cv::resize(undst,undst,cv::Size(out_width, out_height));//resize image
 	}

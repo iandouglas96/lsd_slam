@@ -233,6 +233,7 @@ extern float relocalizationTH;
 
 extern float minUseGrad;
 extern int maskBrightnessLimit;
+extern bool useCLAHE;
 extern float cameraPixelNoise2;
 extern float depthSmoothingFactor;
 
