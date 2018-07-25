@@ -322,7 +322,7 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 	}
 
 	//Convert to CIE L*a*b* (takes 2 steps)
-	if (maskBrightnessLimit > 255) {
+	if (maskBrightnessLimit < 255) {
 		cv::Mat img_lab;
 		cvtColor(bufferItem.data, img_lab, cv::COLOR_GRAY2RGB);
 		cvtColor(img_lab, img_lab, cv::COLOR_RGB2Lab);

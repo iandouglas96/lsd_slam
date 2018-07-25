@@ -575,7 +575,7 @@ void Frame::buildGradients(int level)
 	{
 		val_p1 = *(img_pt+1);
 
-		if (val_p1 > 0 && val_m1 > 0 && val_00 > 0) {
+		if (val_00 > 0 && val_m1 > 0 && val_p1 > 0 && *(img_pt+width) > 0 && *(img_pt-width) > 0) {
 			*((float*)gradxyii_pt) = 0.5f*(val_p1 - val_m1);
 			*(((float*)gradxyii_pt)+1) = 0.5f*(*(img_pt+width) - *(img_pt-width));
 			*(((float*)gradxyii_pt)+2) = val_00;
@@ -628,8 +628,6 @@ void Frame::buildMaxGradients(int level)
 		float dx = *((float*)gradxyii_pt);
 		float dy = *(1+(float*)gradxyii_pt);
 		*maxgrad_pt = sqrtf(dx*dx + dy*dy);
-		//if (dx > 0 && dy > 0) *maxgrad_pt = sqrtf(dx*dx + dy*dy);
-		//else *maxgrad_pt = 0;
 	}
 
 	// 2. smear up/down direction into temp buffer
@@ -653,23 +651,26 @@ void Frame::buildMaxGradients(int level)
 	maxgrad_pt = data.maxGradients[level] + width+1;
 	maxgrad_pt_max = data.maxGradients[level] + width*(height-1)-1;
 	maxgrad_t_pt = maxGradTemp + width+1;
-	for(;maxgrad_pt<maxgrad_pt_max; maxgrad_pt++, maxgrad_t_pt++)
+	const float* img_pt = data.image[level] + width;
+	for(;maxgrad_pt<maxgrad_pt_max; maxgrad_pt++, maxgrad_t_pt++, img_pt++)
 	{
-		float g1 = maxgrad_t_pt[-1];
-		float g2 = maxgrad_t_pt[0];
-		if(g1 < g2) g1 = g2;
-		float g3 = maxgrad_t_pt[1];
-		if(g1 < g3)
-		{
-			*maxgrad_pt = g3;
-			if(g3 >= MIN_ABS_GRAD_CREATE)
-				numMappablePixels++;
-		}
-		else
-		{
-			*maxgrad_pt = g1;
-			if(g1 >= MIN_ABS_GRAD_CREATE)
-				numMappablePixels++;
+		if (*(img_pt) > 0) {
+			float g1 = maxgrad_t_pt[-1];
+			float g2 = maxgrad_t_pt[0];
+			if(g1 < g2) g1 = g2;
+			float g3 = maxgrad_t_pt[1];
+			if(g1 < g3)
+			{
+				*maxgrad_pt = g3;
+				if(g3 >= MIN_ABS_GRAD_CREATE)
+					numMappablePixels++;
+			}
+			else
+			{
+				*maxgrad_pt = g1;
+				if(g1 >= MIN_ABS_GRAD_CREATE)
+					numMappablePixels++;
+			}
 		}
 	}
 
