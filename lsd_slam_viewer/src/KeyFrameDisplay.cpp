@@ -64,7 +64,7 @@ KeyFrameDisplay::~KeyFrameDisplay()
 void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 {
 	// copy over campose.
-	memcpy(camToWorld.data(), msg->camToWorld.data(), 6*sizeof(float));
+	memcpy(camToWorld.data(), msg->camToWorld.data(), 7*sizeof(float));
 
 	fx = msg->fx;
 	fy = msg->fy;
@@ -231,6 +231,7 @@ void KeyFrameDisplay::drawCam(float lineWidth, float* color)
 	glPushMatrix();
 
 		Sophus::Matrix4f m = camToWorld.matrix();
+		//std::cout << m << "\n";
 		glMultMatrixf((GLfloat*)m.data());
 
 		if(color == 0)

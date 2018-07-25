@@ -460,6 +460,7 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 	std::getline(infile,l2);
 	std::getline(infile,l3);
 	std::getline(infile,l4);
+	std::getline(infile,l5);
 
 	// l1 & l2
 	if(std::sscanf(l1.c_str(), "%f %f %f %f %f %f %f %f",
@@ -508,30 +509,15 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 		valid = false;
 	}
 
-	// l4
-	if(std::sscanf(l4.c_str(), "%d %d", &out_width, &out_height) == 2)
+	// l5
+	if(std::sscanf(l5.c_str(), "%d %d", &out_width, &out_height) == 2)
 	{
-		printf("Output resolution: %d %d\n", out_width, out_height);
+		printf("Output size: %d %d\n", out_width, out_height);
 	}
 	else
 	{
 		printf("Out: Failed to Read Output resolution... not rectifying.\n");
 		valid = false;
-	}
-
-	// l5
-	if (cropCenter)
-	{
-		std::getline(infile,l5);
-		if(std::sscanf(l5.c_str(), "%d %d", &crop_width, &crop_height) == 2)
-		{
-			printf("Output size: %d %d\n", crop_width, crop_height);
-		}
-		else
-		{
-			printf("Out: Failed to Read Output resolution... not rectifying.\n");
-			valid = false;
-		}
 	}
 	
 	cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_32F);
@@ -565,8 +551,16 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 	if (valid)
 	{
 		K_ = cv::Mat(originalK_);
-		cv::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), K_,
+
+		if (l4 == "fish") {
+			printf("Using fisheye model\n");
+			cv::fisheye::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), K_,
 				cv::Size(in_width, in_height), CV_16SC2, map1, map2);	
+		} else {
+			printf("Using standard opencv model\n");
+			cv::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), K_,
+				cv::Size(in_width, in_height), CV_16SC2, map1, map2);	
+		}
 	}
 	
 	originalK_ = originalK_.t();
@@ -593,8 +587,10 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 
 		undst = undst(roi);
 	}
-	cv::equalizeHist(undst, undst);
-	cv::resize(undst,undst,cv::Size(out_width, out_height));//resize image
+	//cv::equalizeHist(undst, undst);
+	if (out_width != in_width) {
+		cv::resize(undst,undst,cv::Size(out_width, out_height));//resize image
+	}
 	undst.copyTo(result);
 }
 

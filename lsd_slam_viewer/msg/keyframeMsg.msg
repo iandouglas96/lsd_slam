@@ -4,7 +4,7 @@ bool isKeyframe
 
 # camToWorld as serialization of sophus se(3).
 # may change with keyframeGraph-updates.
-float32[6] camToWorld 
+float32[7] camToWorld 
 
 
 # camera parameter (fx fy cx cy), width, height

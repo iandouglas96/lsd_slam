@@ -59,6 +59,7 @@ ROSImageStreamThread::ROSImageStreamThread()
                             -0.0138209, 0.998525,   0.0525113,
                             -0.00344614,-0.0525636, 0.998612; //Rotation matrix
     sensorPose.linear() = sensorPose.linear().transpose().eval(); 
+	//sensorPose.linear().setIdentity();
 
 	// wait for cam calib
 	width_ = height_ = 0;
@@ -122,7 +123,8 @@ SE3NoX ROSImageStreamThread::getTransform()
 	Eigen::Vector2d trans(tf_transform.getOrigin().getY(), tf_transform.getOrigin().getZ());
 	tf2::convert(tf_transform.getRotation(), quat);
 
-	return SE3NoX(quat, trans);
+	//return SE3NoX(quat, trans);
+	return SE3NoX(0,0,0,0,0);
 }
 
 float ROSImageStreamThread::calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform)
@@ -336,7 +338,7 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 		/*if ((*it_lab)[0] > 190) { //Is brightness above a certain level?
 			(*it_grey) = 0;
 		}
-		if (cnt / width_ < 350 || cnt / width_ > height_-350) {
+		if (cnt / width_ < 70 || cnt / width_ > height_-70 || (cnt / width_ < height_/2+70 && cnt / width_ > height_/2-70)) {
 			(*it_grey) = 0;
 		}*/
 		cnt ++;

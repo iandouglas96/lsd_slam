@@ -644,8 +644,9 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 			}
 		}
 	
-	
-	updateMapWithLidar(otherDepthMap);
+	if (useLidarDepthUpdate) {
+		updateMapWithLidar(otherDepthMap);
+	}
 	// swap!
 	std::swap(currentDepthMap, otherDepthMap);
 

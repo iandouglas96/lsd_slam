@@ -368,7 +368,7 @@ void SlamSystem::constraintSearchThreadLoop()
 
 void SlamSystem::optimizationThreadLoop()
 {
-	printf("Started optimization th1662ead \n");
+	printf("Started optimization thread \n");
 
 	while(keepRunning)
 	{
@@ -1598,7 +1598,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 			constraints.back()->information.setIdentity();
 			//Information matrix is a sort of inverse covariance
 			//Larger values -> stricter constraint
-			constraints.back()->information *= 1e8;
+			constraints.back()->information *= 1e10;
 			poseConsistencyMutex.unlock_shared();
 		}
 
@@ -1657,6 +1657,7 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 	float maxChange = 0;
 	float sumChange = 0;
 	float sum = 0;
+	//std::cout << "List of keyframe positions: \n";
 	for(size_t i=0;i<keyFrameGraph->keyframesAll.size(); i++)
 	{
 		// set edge error sum to zero
@@ -1667,6 +1668,7 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 
 		// get change from last optimization
 		SE3 a = keyFrameGraph->keyframesAll[i]->pose->graphVertex->estimate();
+		//std::cout << a.translation() << "\n";
 		SE3 b = keyFrameGraph->keyframesAll[i]->getScaledCamToWorld();
 		Sophus::Vector6f diff = (a*b.inverse()).log().cast<float>();
 

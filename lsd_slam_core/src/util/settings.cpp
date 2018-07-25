@@ -116,6 +116,7 @@ bool manualTrackingLossIndicated = false;
 
 bool doConstrainCrossSection = false;
 float lidarDepthCovariance = 0.01;//1cm seems reasonable (but probably check this)
+bool useLidarDepthUpdate = true;
 
 std::string packagePath = "";
 

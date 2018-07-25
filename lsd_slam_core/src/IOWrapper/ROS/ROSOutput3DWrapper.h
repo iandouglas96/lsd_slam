@@ -48,7 +48,7 @@ struct GraphConstraint
 struct GraphFramePose
 {
 	int id;
-	float camToWorld[6];
+	float camToWorld[7];
 };
 
 

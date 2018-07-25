@@ -2,27 +2,29 @@
 
 <launch>
   <!-- Run from rosbag -->
+  
   <arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/hallway_datasets/hallway_img_lidar_smooth_2018-07-19-17-23-02.bag"/>
   <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet $(arg bagfile_path) --rate=0.3 --start=5 --clock"/>
 
   <!-- Run in realtime -->
-  <!--
+  <!--include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>
+
   <include file="$(find flea3)/launch/single_node.launch">
     <arg name="device" value="16061374"/>
-  </include>
-
-  <node pkg="image_proc" type="image_proc" name="image_proc" output="screen">
+  </include-->
+  
+  <node pkg="image_proc" type="image_proc" name="image_proc">
     <remap from="image_raw" to="/pg_16061374/image_raw"/>
     <remap from="camera_info" to="/pg_16061374/camera_info"/>
     <remap from="image_rect" to="/pg_16061374/image_rect"/>
+    <remap from="image_mono" to="/pg_16061374/image_mono"/>
   </node>
 
-  <include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>-->
-
   <!-- LSD SLAM system -->
-  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" launch-prefix="gdb --ex run --args" output="screen">
-    <remap from="image" to="/pg_16061374/image_rect"/>
-    <remap from="camera_info" to="/pg_16061374/camera_info"/>
+  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
+    <remap from="image" to="/pg_16061374/image_mono"/>
+    <!--remap from="camera_info" to="/pg_16061374/camera_info"/-->
+    <param name="calib" value="/home/ian/.ros/camera_info/pg_16061374.cfg"/>
     <remap from="pointcloud" to="/velodyne_point_cloud"/>
     <param name="use_tunnel_estimator" value="false"/>
   </node>

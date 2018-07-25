@@ -253,6 +253,7 @@ extern bool continuousPCOutput;
 
 extern bool doConstrainCrossSection;
 extern float lidarDepthCovariance;
+extern bool useLidarDepthUpdate;
 
 
 /// Relative path of calibration file, map saving directory etc. for live_odometry

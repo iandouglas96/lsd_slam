@@ -216,7 +216,7 @@ public:
 		double tmp = _ignoredAxis(0);
 		_ignoredAxis(0) = _ignoredAxis(1);
 		_ignoredAxis(1) = tmp;
-		//std::cout << "Ignored rot: \n" << _ignoredAxis << "\n"; 
+		std::cout << "Ignored rot: \n" << _ignoredAxis << "\n"; 
 	}
 
 	virtual void setMeasurement(const Sophus::SE3d& m)
