@@ -46,8 +46,6 @@ using namespace cv;
 ROSImageStreamThread::ROSImageStreamThread()
 {
 	//load params
-	nh_.param("/lsd_slam/init_res_scale_h", init_res_scale_h, 10);
-	nh_.param("/lsd_slam/init_res_scale_w", init_res_scale_w, 2);
 	nh_.param("/lsd_slam/use_tunnel_estimator", use_tunnel_estimator, false);
 
 	ROS_INFO("Using tunnel estimator: %d", use_tunnel_estimator);
@@ -256,7 +254,8 @@ void ROSImageStreamThread::operator()()
 void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg)
 {
 	//Need camera matrix to do anything useful with data
-	if (!haveCalib) return;
+	//Don't need if we are using the tunnel estimator data
+	if (!haveCalib || use_tunnel_estimator) return;
 
 	//ROS_INFO("Got Pointcloud...");
 
@@ -268,9 +267,9 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 
 	pcl::RangeImagePlanar rangeImage;
 	
-	rangeImage.createFromPointCloudWithFixedSize(*pc, width_/init_res_scale_w, height_/init_res_scale_h,
-									cx_/init_res_scale_w, cy_/init_res_scale_h, 
-									fx_/init_res_scale_w, fy_/init_res_scale_h, 
+	rangeImage.createFromPointCloudWithFixedSize(*pc, width_/initResScaleWidth, height_/initResScaleHeight,
+									cx_/initResScaleWidth, cy_/initResScaleHeight, 
+									fx_/initResScaleWidth, fy_/initResScaleHeight, 
 									sensorPose, pcl::RangeImagePlanar::LASER_FRAME);
 
 	cv::Mat image = cv::Mat(rangeImage.height, rangeImage.width, CV_32F, -1.0);
@@ -286,6 +285,19 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 
 	//std::cout << rangeImage << "\n";
 	cv::resize(image,depth_map,cv::Size(width_, height_),0,0,INTER_AREA);//resize image
+
+	if (fillDepthHoles) {
+		cv::Mat inpaint_mask;
+		//Create mask to find holes
+		inpaint_mask = cv::Mat::zeros(depth_map.size(), CV_8UC1);
+		inpaint_mask.setTo(255, depth_map == 0);
+		//Don't treat the top and bottom of the image as "holes"
+		cv::floodFill(inpaint_mask, cv::Point(1,1), 0);
+		cv::floodFill(inpaint_mask, cv::Point(1,depth_map.size().height-1), 0);
+		//Fill holes with interpolation
+		cv::inpaint(depth_map, inpaint_mask, depth_map, 1, cv::INPAINT_NS);
+	}
+
 	haveDepthMap = true;
 }
 

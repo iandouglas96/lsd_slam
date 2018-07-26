@@ -101,6 +101,10 @@ void dynConfCb(lsd_slam_core::LSDParamsConfig &config, uint32_t level)
 	useCLAHE = config.useCLAHE;
 	claheClipLimit = config.claheClipLimit;
 
+	initResScaleHeight = config.initResScaleHeight;
+	initResScaleWidth = config.initResScaleWidth;
+	fillDepthHoles = config.fillDepthHoles;
+
 	doSlam = config.doSLAM;
 	useFabMap = config.useFabMap;
 	doKFReActivation = config.doKFReActivation;

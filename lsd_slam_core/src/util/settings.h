@@ -240,6 +240,10 @@ extern int maskRectangleBottom;
 extern bool useCLAHE;
 extern float claheClipLimit;
 
+extern int initResScaleHeight;
+extern int initResScaleWidth;
+extern bool fillDepthHoles;
+
 extern float minUseGrad;
 extern float cameraPixelNoise2;
 extern float depthSmoothingFactor;

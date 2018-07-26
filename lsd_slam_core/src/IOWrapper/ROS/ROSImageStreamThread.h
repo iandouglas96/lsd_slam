@@ -115,7 +115,6 @@ private:
 	//Point Cloud processing
 	ros::Subscriber pointcloud_sub;
 	Eigen::Affine3f sensorPose;
-	int init_res_scale_h, init_res_scale_w;
 	cv::Mat depth_map;
 	bool use_tunnel_estimator; //Toggle to use raw pointcloud or data from tunnel_estimator
 };

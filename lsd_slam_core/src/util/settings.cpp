@@ -94,6 +94,10 @@ int maskRectangleBottom = 1024;
 bool useCLAHE = true;
 float claheClipLimit = 0.5;
 
+int initResScaleHeight = 16;
+int initResScaleWidth = 4;
+bool fillDepthHoles = false;
+
 bool allowNegativeIdepths = true;
 bool useMotionModel = false;
 bool useSubpixelStereo = true;
