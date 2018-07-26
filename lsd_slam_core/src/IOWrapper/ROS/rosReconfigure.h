@@ -91,6 +91,15 @@ void dynConfCb(lsd_slam_core::LSDParamsConfig &config, uint32_t level)
 	cameraPixelNoise2 = config.cameraPixelNoise*config.cameraPixelNoise;
 	depthSmoothingFactor = config.depthSmoothingFactor;
 
+	maskBrightnessLimit = config.maskBrightnessLimit; //256 is off
+	maskRectangle = config.maskRectangle;
+	maskRectangleLeft = config.maskRectangleLeft;
+	maskRectangleRight = config.maskRectangleRight;
+	maskRectangleTop = config.maskRectangleTop;
+	maskRectangleBottom = config.maskRectangleBottom;
+
+	useCLAHE = config.useCLAHE;
+	claheClipLimit = config.claheClipLimit;
 
 	doSlam = config.doSLAM;
 	useFabMap = config.useFabMap;

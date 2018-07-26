@@ -230,10 +230,17 @@ extern int propagateKeyFrameDepthCount;
 extern float loopclosureStrictness;
 extern float relocalizationTH;
 
+extern int maskBrightnessLimit; //256 is off
+extern bool maskRectangle;
+extern int maskRectangleLeft;
+extern int maskRectangleRight;
+extern int maskRectangleTop;
+extern int maskRectangleBottom;
+
+extern bool useCLAHE;
+extern float claheClipLimit;
 
 extern float minUseGrad;
-extern int maskBrightnessLimit;
-extern bool useCLAHE;
 extern float cameraPixelNoise2;
 extern float depthSmoothingFactor;
 

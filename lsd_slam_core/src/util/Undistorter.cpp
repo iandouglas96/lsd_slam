@@ -590,6 +590,7 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 
 	if (useCLAHE) {
 		cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+		clahe->setClipLimit(claheClipLimit);
 		clahe->apply(undst, undst);
 	}
 	if (out_width != in_width) {

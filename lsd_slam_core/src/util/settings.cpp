@@ -81,10 +81,18 @@ float KFDistWeight = 10;
 float KFUsageWeight = 10;
 
 float minUseGrad = 20;
-int maskBrightnessLimit = 256; //256 is off
-bool useCLAHE = false;
 float cameraPixelNoise2 = 5*5;
 float depthSmoothingFactor = 1;
+
+int maskBrightnessLimit = 256; //256 is off
+bool maskRectangle = false;
+int maskRectangleLeft = 880;
+int maskRectangleRight = 1280;
+int maskRectangleTop = 0;
+int maskRectangleBottom = 1024;
+
+bool useCLAHE = true;
+float claheClipLimit = 0.5;
 
 bool allowNegativeIdepths = true;
 bool useMotionModel = false;

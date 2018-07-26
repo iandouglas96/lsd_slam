@@ -321,6 +321,9 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 		bufferItem.data = cv_ptr->image;
 	}
 
+	cv::MatIterator_<uchar> it_grey, end_grey;
+	it_grey = bufferItem.data.begin<uchar>();
+	end_grey = bufferItem.data.end<uchar>();
 	//Convert to CIE L*a*b* (takes 2 steps)
 	if (maskBrightnessLimit < 255) {
 		cv::Mat img_lab;
@@ -328,20 +331,24 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 		cvtColor(img_lab, img_lab, cv::COLOR_RGB2Lab);
 		//Scan through image pixels
 		cv::MatIterator_<Vec3b> it_lab, end_lab;
-		cv::MatIterator_<uchar> it_grey, end_grey;
 		it_lab = img_lab.begin<Vec3b>();
 		end_lab = img_lab.end<Vec3b>();
-		it_grey = bufferItem.data.begin<uchar>();
-		end_grey = bufferItem.data.end<uchar>();
-		int cnt = 0;
+		
 		for( ; it_grey != end_grey, it_lab != end_lab; ++it_grey, ++it_lab)
 		{
 			if ((*it_lab)[0] > maskBrightnessLimit) { //Is brightness above a certain level?
 				(*it_grey) = 0;
 			}
-			/*if (cnt / width_ < height_/2-100 && cnt / width_ > height_/2-300) {
+		}
+	}
+	
+	if (maskRectangle) {
+		int cnt = 0;
+		for( ; it_grey != end_grey; ++it_grey)
+		{
+			if (cnt % width_ > maskRectangleLeft && cnt % width_ < maskRectangleRight && cnt / width_ > maskRectangleTop && cnt / width_ < maskRectangleBottom) {
 				(*it_grey) = 0;
-			}*/
+			}
 			cnt ++;
 		}
 	}

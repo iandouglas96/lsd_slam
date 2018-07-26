@@ -25,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen REQUIRED)
 find_package(X11 REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 3.4 REQUIRED)
 find_package(PCL 1.8 REQUIRED)
 include(cmake/FindSuiteParse.cmake)
 include(cmake/FindG2O.cmake)
