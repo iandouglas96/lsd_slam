@@ -50,17 +50,9 @@ ROSImageStreamThread::ROSImageStreamThread()
 
 	ROS_INFO("Using tunnel estimator: %d", use_tunnel_estimator);
 
-	//Set up lidar and camera calibration
-	//This should really not be hardcoded
-    sensorPose.translation() << -0.0579167, 0.0585683, 0.0; //Translation matrix
-    sensorPose.linear() <<  0.999899,   0.0136208,  0.00416754,
-                            -0.0138209, 0.998525,   0.0525113,
-                            -0.00344614,-0.0525636, 0.998612; //Rotation matrix
-    sensorPose.linear() = sensorPose.linear().transpose().eval(); 
-	//sensorPose.linear().setIdentity();
-
 	// wait for cam calib
 	width_ = height_ = 0;
+	have_sensor_pose = false;
 
 	// subscribe
 	vid_channel = nh_.resolveName("image");
@@ -257,6 +249,27 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 	//Don't need if we are using the tunnel estimator data
 	if (!haveCalib || use_tunnel_estimator) return;
 
+	if (!have_sensor_pose) {
+		tf2::Stamped<tf2::Transform> sensor_pose_tf2;
+		tf2::convert(tf_buffer->lookupTransform("velodyne", "cam_top_left", ros::Time(0), ros::Duration(1.0)), sensor_pose_tf2);
+		Eigen::Quaterniond quat;
+		tf2::convert(sensor_pose_tf2.getRotation(), quat); 
+		sensor_pose.translation() << sensor_pose_tf2.getOrigin().getX(), sensor_pose_tf2.getOrigin().getY(), sensor_pose_tf2.getOrigin().getZ();
+		sensor_pose.linear() = quat.normalized().toRotationMatrix().cast<float>();
+
+		ROS_INFO_STREAM("Camera to LIDAR Pose is: \n" << sensor_pose.matrix() << "\n");
+
+		//Set up lidar and camera calibration
+		/*sensor_pose.translation() << -0.0579167, 0.0585683, 0.0; //Translation matrix
+		sensor_pose.linear() <<  0.999899,   0.0136208,  0.00416754,
+								-0.0138209, 0.998525,   0.0525113,
+								-0.00344614,-0.0525636, 0.998612; //Rotation matrix
+		sensor_pose.linear() = sensor_pose.linear().transpose().eval(); */
+		//sensor_pose.linear().setIdentity();
+
+		have_sensor_pose = true;
+	}
+
 	//ROS_INFO("Got Pointcloud...");
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr pc =
@@ -270,7 +283,7 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 	rangeImage.createFromPointCloudWithFixedSize(*pc, width_/initResScaleWidth, height_/initResScaleHeight,
 									cx_/initResScaleWidth, cy_/initResScaleHeight, 
 									fx_/initResScaleWidth, fy_/initResScaleHeight, 
-									sensorPose, pcl::RangeImagePlanar::LASER_FRAME);
+									sensor_pose, pcl::RangeImagePlanar::LASER_FRAME);
 
 	cv::Mat image = cv::Mat(rangeImage.height, rangeImage.width, CV_32F, -1.0);
 

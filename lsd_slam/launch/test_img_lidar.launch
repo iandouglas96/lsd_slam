@@ -20,6 +20,8 @@
     <remap from="image_mono" to="/pg_16061374/image_mono"/>
   </node>
 
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_left_tf" args="-0.0579167 0.0585683 0.0 -0.0138 0.0034 -0.0526 velodyne cam_top_left" />
+
   <!-- LSD SLAM system -->
   <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
     <remap from="image" to="/pg_16061374/image_mono"/>
