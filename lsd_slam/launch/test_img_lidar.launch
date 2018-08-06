@@ -3,7 +3,7 @@
 <launch>
   <!-- Run from rosbag -->
   
-  <arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/hallway_datasets/hallway_img_lidar_shaky_2018-07-19-17-31-02.bag"/>
+  <arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/outdoors_datasets/outdoors_image_lidar_asphalt_2018-07-27-11-10-34.bag"/>
   <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet $(arg bagfile_path) --rate=0.1 --start=5 --clock"/>
 
   <!-- Run in realtime -->
@@ -11,14 +11,14 @@
 
   <include file="$(find flea3)/launch/single_node.launch">
     <arg name="device" value="16061374"/>
-  </include-->
+  </include>
   
   <node pkg="image_proc" type="image_proc" name="image_proc">
     <remap from="image_raw" to="/pg_16061374/image_raw"/>
     <remap from="camera_info" to="/pg_16061374/camera_info"/>
     <remap from="image_rect" to="/pg_16061374/image_rect"/>
     <remap from="image_mono" to="/pg_16061374/image_mono"/>
-  </node>
+  </node-->
 
   <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_left_tf" args="-0.0579167 0.0585683 0.0 -0.0138 0.0034 -0.0526 velodyne cam_top_left" />
 

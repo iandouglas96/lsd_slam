@@ -110,6 +110,7 @@ void dynConfCb(lsd_slam_core::LSDParamsConfig &config, uint32_t level)
 	doKFReActivation = config.doKFReActivation;
 	doMapping = config.doMapping;
 
+	doLoopClosure = config.doLoopClosure;
 	maxLoopClosureCandidates = config.maxLoopClosureCandidates;
 	loopclosureStrictness = config.loopclosureStrictness;
 	relocalizationTH = config.relocalizationTH;

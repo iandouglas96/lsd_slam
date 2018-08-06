@@ -31,7 +31,8 @@
                 "/home/ian/catkin_ws/src/inspection/estimation/utils/include",
                 "/home/ian/catkin_ws/src/drivers/velodyne_puck/velodyne_puck_decoder/include",
                 "/home/ian/catkin_ws/src/drivers/velodyne_puck/velodyne_puck_driver/include",
-                "/usr/include"
+                "/usr/include",
+                "${workspaceFolder}"
             ],
             "name": "Linux",
             "intelliSenseMode": "clang-x64"
