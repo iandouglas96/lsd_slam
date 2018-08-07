@@ -230,15 +230,13 @@ void PointCloudViewer::draw()
 	}
 
 
+	graphDisplay->draw();
 
 	if(showCurrentCamera)
 		currentCamDisplay->drawCam(2*lineTesselation, 0);
 
 	if(showCurrentPointcloud)
 		currentCamDisplay->drawPC(pointTesselation, 1);
-
-
-	graphDisplay->draw();
 
 
 	glPopMatrix();

@@ -28,6 +28,9 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#include "geometry_msgs/Pose.h"
+#include <tf2_eigen/tf2_eigen.h>
+
 #include "ros/package.h"
 
 KeyFrameDisplay::KeyFrameDisplay()
@@ -45,12 +48,12 @@ KeyFrameDisplay::KeyFrameDisplay()
 
 	totalPoints = displayedPoints = 0;
 
-	//FOR TESTING ONLY
-	//Load these dynamically
+	//Init stuff to reasonable starting values
 	robot_pose.translation() << 0, 0, 0;
-    robot_pose.linear() <<  0, 1, 0,
-                            -1, 0,0,
+    robot_pose.linear() <<  1, 0, 0,
+                            0, 1, 0,
                             0, 0, 1;
+	tunnel_radius = 0;
 
 	texture_state = 0;
 }
@@ -91,6 +94,29 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	height = msg->height;
 	id = msg->id;
 	time = msg->time;
+
+	//Load in position w.r.t tunnel center
+	Eigen::Vector3d pos;
+	tf2::convert(msg->tunnel_pose.position, pos);
+	Eigen::Quaterniond rot;
+	tf2::convert(msg->tunnel_pose.orientation, rot);
+	robot_pose.linear() = rot.normalized().toRotationMatrix().cast<float>();
+	robot_pose.translation() = pos.cast<float>();
+
+	//std::cout << "vis pos: " << robot_pose.translation() << "\n";
+	//std::cout << "vis rot: " << robot_pose.linear() << "\n";
+
+	//Rotate 90 degrees to reconcile coord frames.
+	Eigen::Vector3f euler = robot_pose.rotation().eulerAngles(2, 1, 0);
+	//std::cout << "vis eul: " << euler << "\n";
+	robot_pose.linear() = (Eigen::AngleAxisf(euler(2), Eigen::Vector3f::UnitX())*
+						   Eigen::AngleAxisf(euler(0), Eigen::Vector3f::UnitY())*
+						   Eigen::AngleAxisf(euler(1)+M_PI/2, Eigen::Vector3f::UnitZ())).matrix();
+	robot_pose.translation() = Eigen::Vector3f(robot_pose.translation()(1), robot_pose.translation()(0), robot_pose.translation()(2));
+
+	tunnel_radius = msg->tunnel_radius;
+
+	
 
 	// copy over image
 	if (msg->image.size() == sizeof(float)*width*height) {
@@ -243,12 +269,19 @@ void KeyFrameDisplay::refreshPC()
 	delete[] tmpBuffer;
 }
 
-void KeyFrameDisplay::setTexture(cv::Mat &tex)
+void KeyFrameDisplay::setTexture(cv::Mat &color_channel)
 {
+    color_channel.convertTo(texture, CV_8UC1);
 	texture_mutex.lock();
-	texture = tex;
-    texture.convertTo(texture, CV_8UC1);
-	cv::flip(texture, texture, 0);
+	cv::cvtColor(color_channel, texture, cv::COLOR_GRAY2RGBA);
+
+	for (int y = 0; y < height; ++y)
+		for (int x = 0; x < width; ++x) {
+			cv::Vec4b & pixel = texture.at<cv::Vec4b>(y, x);
+			if (pixel[0] == 0) pixel[3] = 0;
+			else pixel[3] = std::max((height/2-imageWidth*(abs(height/2-y)))*255/(height/2),0);
+		}
+
 	texture_state = 1;
 	texture_mutex.unlock();
 }
@@ -267,11 +300,11 @@ void KeyFrameDisplay::loadTexture()
 		texture_mutex.lock();
 		glTexImage2D(GL_TEXTURE_2D,     // Type of texture
 					0,                  // Pyramid level (for mip-mapping) - 0 is the top level
-					GL_LUMINANCE,             // Internal colour format to convert to
+					GL_RGBA,             // Internal colour format to convert to
 					texture.cols,       // Image width  
 					texture.rows,       // Image height 
 					0,                  // Border width in pixels (can either be 1 or 0)
-					GL_LUMINANCE,      		// Input image format (OpenCV uses BGR by default)
+					GL_RGBA,      		// Input image format (OpenCV uses BGR by default)
 					GL_UNSIGNED_BYTE,   // Image data type
 					texture.ptr());     // The actual image data itself
 		texture_mutex.unlock();
@@ -302,7 +335,7 @@ Eigen::Vector3f KeyFrameDisplay::calcProjectionCameraFrame(float x, float y)
     return direction;
 }
 
-float KeyFrameDisplay::calcDistance(Eigen::Affine3f &robot_pose, Eigen::Vector3f &ray_direction, float tunnel_radius)
+float KeyFrameDisplay::calcDistance(Eigen::Vector3f &ray_direction)
 {
     //ROS_INFO("%f, %f, %f, %f", ray_direction.x(), ray_direction.y(), ray_direction.z(), ray_direction.w());
 
@@ -454,6 +487,9 @@ void KeyFrameDisplay::drawCylinderSegment()
 
     //Set the image to texture with
 	glColor3f(1,1,1);
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, texture_handle);  
     glBegin(GL_QUAD_STRIP);
     for (int i = 0; i <= nbSteps; ++i) {
@@ -464,15 +500,17 @@ void KeyFrameDisplay::drawCylinderSegment()
         img_pt = getLeftIntercept(pt, angle);
         Eigen::Vector3f global_pt = calcProjectionCameraFrame(img_pt(0), img_pt(1));
         //glNormal3f(0, -global_pt.y(), -global_pt.z());
-        global_pt *= calcDistance(robot_pose, global_pt, 1);
+        global_pt *= calcDistance(global_pt);
         glTexCoord2f(img_pt(0)/width, img_pt(1)/height);
+		global_pt += camToWorld.translation(); //Translate globally
         glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
         
         img_pt = getRightIntercept(pt, angle);
         global_pt = calcProjectionCameraFrame(img_pt(0), img_pt(1));
-        global_pt *= calcDistance(robot_pose, global_pt, 1);
+        global_pt *= calcDistance(global_pt);
         //glNormal3f(0, -global_pt.y(), -global_pt.z());
         glTexCoord2f(img_pt(0)/width, img_pt(1)/height);
+		global_pt += camToWorld.translation(); //Translate globally
         glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
     }
     glEnd();

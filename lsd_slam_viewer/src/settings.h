@@ -27,6 +27,8 @@ extern float lineTesselation;
 extern bool keepInMemory;
 extern bool showKFCameras;
 extern bool showKFPointclouds;
+extern bool showTunnelImages;
+extern int  imageWidth;
 extern bool showConstraints;
 extern bool showCurrentCamera;
 extern bool showCurrentPointcloud;

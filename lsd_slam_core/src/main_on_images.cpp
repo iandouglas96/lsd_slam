@@ -257,7 +257,7 @@ int main( int argc, char** argv )
 		if(runningIDX == 0)
 			system->randomInit(image.data, fakeTimeStamp, runningIDX);
 		else
-			system->trackFrame(image.data, runningIDX ,hz == 0,fakeTimeStamp);
+			system->trackFrame(image.data, runningIDX ,hz == 0,fakeTimeStamp, SE3NoX(0,0,0,0,0), 0);
 		runningIDX++;
 		fakeTimeStamp+=0.03;
 

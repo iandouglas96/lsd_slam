@@ -77,10 +77,10 @@ public:
 	Sophus::SE3f camToWorld;
 
 private:
-	void setTexture(cv::Mat &tex);
+	void setTexture(cv::Mat &color_channel);
 	void loadTexture();
 	Eigen::Vector3f calcProjectionCameraFrame(float x, float y);
-	float calcDistance(Eigen::Affine3f &robot_pose, Eigen::Vector3f &ray_direction, float tunnel_radius);
+	float calcDistance(Eigen::Vector3f &ray_direction);
 	void drawCam(float lineWidth);
 
 	Eigen::Vector2f getLeftIntercept(float dist, float angle);
@@ -94,6 +94,7 @@ private:
 	int width, height;
 
 	Eigen::Affine3f robot_pose;
+	float tunnel_radius;
 
 	float my_scaledTH, my_absTH, my_scale;
 	int my_minNearSupport;

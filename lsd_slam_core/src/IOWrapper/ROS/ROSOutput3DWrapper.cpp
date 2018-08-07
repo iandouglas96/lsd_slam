@@ -32,7 +32,9 @@
 #include "GlobalMapping/KeyFrameGraph.h"
 #include "sophus/sim3.hpp"
 #include "geometry_msgs/PoseStamped.h"
+#include <tf2_eigen/tf2_eigen.h>
 #include "GlobalMapping/g2oTypeSE3Sophus.h"
+#include <Eigen/Dense>
 
 namespace lsd_slam
 {
@@ -112,7 +114,10 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	//load image and reference data
 	fMsg.image.resize(sizeof(float)*w*h);
 	memcpy(fMsg.image.data(), f->image(0), sizeof(float)*w*h); //Copy data
-	//std::cout << fMsg.image.data()[10] << ", " << f->image(0)[10] << "\n";
+	tf2::convert(f->tunnelPose().transform().translation(), fMsg.tunnel_pose.position);
+	std::cout << "pos: " << f->tunnelPose().transform().translation() << "\n";
+	tf2::convert(f->tunnelPose().transform().unit_quaternion(), fMsg.tunnel_pose.orientation);
+	fMsg.tunnel_radius = f->tunnelRadius();
 
 	keyframe_publisher.publish(fMsg);
 }

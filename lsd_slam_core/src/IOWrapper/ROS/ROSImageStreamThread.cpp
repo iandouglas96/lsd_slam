@@ -108,13 +108,18 @@ float ROSImageStreamThread::getDepth(int x, int y)
 SE3NoX ROSImageStreamThread::getTransform()
 {
 	//Transform FROM tunnel frame TO robot frame
-	tf2::Transform tf_transform = this->top_left_transform.inverse();
+	tf2::Transform tf_transform = this->top_left_transform;
 	Eigen::Quaterniond quat;
 	Eigen::Vector2d trans(tf_transform.getOrigin().getY(), tf_transform.getOrigin().getZ());
 	tf2::convert(tf_transform.getRotation(), quat);
 
 	return SE3NoX(quat, trans);
 	//return SE3NoX(0,0,0,0,0);
+}
+
+float ROSImageStreamThread::getRadius()
+{
+	return tunnel_radius;
 }
 
 float ROSImageStreamThread::calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform)
@@ -372,6 +377,9 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 		for( ; it_grey != end_grey; ++it_grey)
 		{
 			if (cnt % width_ > maskRectangleLeft && cnt % width_ < maskRectangleRight && cnt / width_ > maskRectangleTop && cnt / width_ < maskRectangleBottom) {
+				(*it_grey) = 0;
+			}
+			if (cnt % width_ > 0 && cnt % width_ < 1280 && cnt / width_ > 980 && cnt / width_ < 1080) {
 				(*it_grey) = 0;
 			}
 			cnt ++;

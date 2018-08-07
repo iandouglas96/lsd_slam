@@ -49,13 +49,14 @@ void KeyFrameGraphDisplay::draw()
 	float color[3] = {0,0,1};
 	for(unsigned int i=0;i<keyframes.size();i++)
 	{
+		if (showTunnelImages)
+			keyframes[i]->drawCylinderSegment();
+
 		if(showKFCameras)
 			keyframes[i]->drawCam(lineTesselation, color);
 
-		if((showKFPointclouds && (int)i > cutFirstNKf) || i == keyframes.size()-1)
+		if((showKFPointclouds && (int)i > cutFirstNKf) || (i == keyframes.size()-1 && showKFPointclouds))
 			keyframes[i]->drawPC(pointTesselation, 1);
-
-		keyframes[i]->drawCylinderSegment();
 	}
 
 	if(flushPointcloud)

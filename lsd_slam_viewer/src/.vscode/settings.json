@@ -52,7 +52,8 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "utility": "cpp",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "core": "cpp"
     },
     "python.autoComplete.extraPaths": [
         "/home/ian/catkin_ws/devel/lib/python2.7/dist-packages",

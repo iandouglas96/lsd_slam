@@ -72,6 +72,7 @@ public:
     float getDepth(int x, int y);
 
 	SE3NoX getTransform();
+	float getRadius();
 
 	bool depthReady();
 	

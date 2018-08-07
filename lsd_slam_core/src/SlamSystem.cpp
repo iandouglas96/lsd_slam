@@ -905,10 +905,10 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 
 }
 
-void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp)
-{
+void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp, SE3NoX tunnelOrient, float tunnelRadius){
 	// Create new frame
 	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	trackingNewFrame->setTunnelInfo(tunnelOrient, tunnelRadius);
 
 	if(!trackingIsGood)
 	{
@@ -1056,7 +1056,6 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 		lock.unlock();
 	}
 }
-
 
 float SlamSystem::tryTrackSE3Depth(
 		TrackingReference* A, TrackingReference* B,

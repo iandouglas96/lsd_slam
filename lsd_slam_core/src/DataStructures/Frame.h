@@ -64,9 +64,16 @@ public:
 	/** Prepares this frame for stereo comparisons with the other frame (computes some intermediate values that will be needed) */
 	void prepareForStereoWith(Frame* other, SE3 thisToOther, const Eigen::Matrix3f& K, const int level);
 
+	inline void setTunnelInfo(SE3NoX &pose, float radius) {
+		data.tunnel_pose = pose;
+		data.tunnel_radius = radius;
+	}
+
 	
 
 	// Accessors
+	inline SE3NoX tunnelPose() const;
+	inline float tunnelRadius() const;
 	/** Returns the unique frame id. */
 	inline int id() const;
 	
@@ -273,6 +280,9 @@ private:
 		// data from initial tracking, indicating which pixels in the reference frame ware good or not.
 		// deleted as soon as frame is used for mapping.
 		bool* refPixelWasGood;
+
+		SE3NoX tunnel_pose;
+		float tunnel_radius;
 	};
 	Data data;
 
@@ -290,7 +300,15 @@ private:
 	bool minimizeInMemory();
 };
 
+inline SE3NoX Frame::tunnelPose() const
+{
+	return data.tunnel_pose;
+}
 
+inline float Frame::tunnelRadius() const
+{
+	return data.tunnel_radius;
+}
 
 inline int Frame::id() const
 {

@@ -52,6 +52,8 @@ void dynConfCb(lsd_slam_viewer::LSDSLAMViewerParamsConfig &config, uint32_t leve
 	keepInMemory = config.keepInMemory;
 	showKFCameras = config.showKFCameras;
 	showKFPointclouds = config.showKFPointclouds;
+	showTunnelImages = config.showTunnelImages;
+	imageWidth = config.imageWidth;
 	showConstraints = config.showConstraints;
 	showCurrentCamera = config.showCurrentCamera;
 	showCurrentPointcloud = config.showCurrentPointcloud;
