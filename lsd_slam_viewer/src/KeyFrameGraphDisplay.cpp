@@ -54,8 +54,9 @@ void KeyFrameGraphDisplay::draw()
 
 		if((showKFPointclouds && (int)i > cutFirstNKf) || i == keyframes.size()-1)
 			keyframes[i]->drawPC(pointTesselation, 1);
-	}
 
+		keyframes[i]->drawCylinderSegment();
+	}
 
 	if(flushPointcloud)
 	{

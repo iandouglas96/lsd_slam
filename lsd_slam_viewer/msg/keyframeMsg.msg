@@ -20,3 +20,8 @@ uint32 width
 # data as InputPointDense (float idepth, float idepth_var, uchar color[4]), width x height
 # may be empty, in that case no associated pointcloud is ever shown.
 uint8[] pointcloud
+
+# keyframe image
+float32[] image
+float32 tunnel_radius
+geometry_msgs/Pose tunnel_pose

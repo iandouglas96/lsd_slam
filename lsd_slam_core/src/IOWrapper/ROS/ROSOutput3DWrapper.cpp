@@ -58,7 +58,6 @@ ROSOutput3DWrapper::ROSOutput3DWrapper(int width, int height)
 	pose_channel = nh_.resolveName("lsd_slam/pose");
 	pose_publisher = nh_.advertise<geometry_msgs::PoseStamped>(pose_channel,1);
 
-
 	publishLvl=0;
 }
 
@@ -109,6 +108,11 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 		pc[idx].color[2] = color[idx];
 		pc[idx].color[3] = color[idx];
 	}
+
+	//load image and reference data
+	fMsg.image.resize(sizeof(float)*w*h);
+	memcpy(fMsg.image.data(), f->image(0), sizeof(float)*w*h); //Copy data
+	//std::cout << fMsg.image.data()[10] << ", " << f->image(0)[10] << "\n";
 
 	keyframe_publisher.publish(fMsg);
 }

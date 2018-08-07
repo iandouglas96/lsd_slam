@@ -21,7 +21,6 @@
 #define GL_GLEXT_PROTOTYPES 1
 
 #include "KeyFrameDisplay.h"
-#include "opencv2/opencv.hpp"
 #include <stdio.h>
 #include "settings.h"
 
@@ -45,6 +44,15 @@ KeyFrameDisplay::KeyFrameDisplay()
 	my_scaledTH = my_absTH = 0;
 
 	totalPoints = displayedPoints = 0;
+
+	//FOR TESTING ONLY
+	//Load these dynamically
+	robot_pose.translation() << 0, 0, 0;
+    robot_pose.linear() <<  0, 1, 0,
+                            -1, 0,0,
+                            0, 0, 1;
+
+	texture_state = 0;
 }
 
 
@@ -63,6 +71,7 @@ KeyFrameDisplay::~KeyFrameDisplay()
 
 void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 {
+	//std::cout << "set from!\n";
 	// copy over campose.
 	memcpy(camToWorld.data(), msg->camToWorld.data(), 7*sizeof(float));
 
@@ -70,6 +79,8 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	fy = msg->fy;
 	cx = msg->cx;
 	cy = msg->cy;
+
+	cam_intrinsics << fx, 0, cx, 0, fy, cy, 0, 0, 1;
 
 	fxi = 1/fx;
 	fyi = 1/fy;
@@ -80,6 +91,18 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	height = msg->height;
 	id = msg->id;
 	time = msg->time;
+
+	// copy over image
+	if (msg->image.size() == sizeof(float)*width*height) {
+		cv::Mat image = cv::Mat(height, width, CV_32F, cv::Scalar(0));
+		memcpy(image.data, msg->image.data(), sizeof(float)*width*height);
+		image.convertTo(image, CV_8UC1);
+		//std::cout << image << "\n";
+		setTexture(image);
+		//std::cout << "img disp...\n";
+	} else {
+		//std::cout << "bad image size: " << msg->image.size() << "\n";
+	}
 
 	if(originalInput != 0)
 		delete[] originalInput;
@@ -220,7 +243,241 @@ void KeyFrameDisplay::refreshPC()
 	delete[] tmpBuffer;
 }
 
+void KeyFrameDisplay::setTexture(cv::Mat &tex)
+{
+	texture_mutex.lock();
+	texture = tex;
+    texture.convertTo(texture, CV_8UC1);
+	cv::flip(texture, texture, 0);
+	texture_state = 1;
+	texture_mutex.unlock();
+}
 
+void KeyFrameDisplay::loadTexture()
+{
+	if (texture_state == 1) {
+		//std::cout << texture << "\n";
+		glGenTextures(1, &texture_handle);
+		glBindTexture(GL_TEXTURE_2D, texture_handle);
+
+		//Set interpolation technique
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		texture_mutex.lock();
+		glTexImage2D(GL_TEXTURE_2D,     // Type of texture
+					0,                  // Pyramid level (for mip-mapping) - 0 is the top level
+					GL_LUMINANCE,             // Internal colour format to convert to
+					texture.cols,       // Image width  
+					texture.rows,       // Image height 
+					0,                  // Border width in pixels (can either be 1 or 0)
+					GL_LUMINANCE,      		// Input image format (OpenCV uses BGR by default)
+					GL_UNSIGNED_BYTE,   // Image data type
+					texture.ptr());     // The actual image data itself
+		texture_mutex.unlock();
+
+		//Turn on texture mapping
+		glEnable(GL_TEXTURE_2D);
+		glDisable(GL_LIGHTING);
+		texture_state = 2;
+
+		//std::cout << texture_handle << "\n";
+
+		//cv::imshow("Texture", texture);
+		//cv::waitKey(1);
+	}
+}
+
+//Convert from image to world coordinates IN CAMERA FRAME
+Eigen::Vector3f KeyFrameDisplay::calcProjectionCameraFrame(float x, float y)
+{
+    Eigen::Vector3f hom_pt(x, y, 1);
+    hom_pt = cam_intrinsics.inverse()*hom_pt; //put in world coordinates
+
+    Eigen::Vector3f direction(hom_pt(0),hom_pt(1),hom_pt(2));
+
+    //Normalize so we have a unit vector
+    direction *= 1/direction.norm();
+
+    return direction;
+}
+
+float KeyFrameDisplay::calcDistance(Eigen::Affine3f &robot_pose, Eigen::Vector3f &ray_direction, float tunnel_radius)
+{
+    //ROS_INFO("%f, %f, %f, %f", ray_direction.x(), ray_direction.y(), ray_direction.z(), ray_direction.w());
+
+    //Convert to eigen datatypes, which are much faster
+    Eigen::Vector3f pos = robot_pose.translation();
+    Eigen::Vector3f dir(ray_direction.x(), ray_direction.y(), ray_direction.z());
+    dir = robot_pose.linear()*dir;
+
+    //project onto y-z plane (cross sectional plane of tunnel), magnitude doesn't matter
+    Eigen::Vector3f proj = Eigen::Vector3f::UnitX().cross(dir.cross(Eigen::Vector3f::UnitX()));
+    
+    //Assume parametrization x=x0+at, y=y0+bt, z=z0+ct where a^2+b^2+c^2=1
+    double under_sqrt = proj(1)*proj(1)*(tunnel_radius*tunnel_radius-pos(2)*pos(2));//a^2*(R^2-y0^2)
+    under_sqrt += proj(2)*proj(2)*(tunnel_radius*tunnel_radius-pos(1)*pos(1));//b^2*(R^2-x0^2)
+    under_sqrt += 2*proj(1)*proj(2)*pos(1)*pos(2);//2*a*b*x0*y0
+    double t = -proj(1)*pos(1)-proj(2)*pos(2);//-a*x0-b*y0
+    t += sqrt(under_sqrt);
+    t /= proj(1)*proj(1) + proj(2)*proj(2);
+
+    return t;
+}
+
+Eigen::Vector2f KeyFrameDisplay::getLeftIntercept(float dist, float angle)
+{
+    float x = dist*sin(abs(angle));
+    float y = dist*cos(abs(angle));
+    float slope = -tan(angle);
+    if (slope > 0)
+        x = width - x;
+    float cept = -slope*x + y;
+    /*std::cout << "cept: " << cept << "\n";
+    std::cout << "x: " << x << "\n";
+    std::cout << "y: " << y << "\n";*/
+    //special case
+    
+    if (abs(tan(angle)) < 0.0001) {
+        return Eigen::Vector2f(0, y);
+    }
+    if (abs(slope) < 0.0001) {
+        return Eigen::Vector2f(x, 0);
+    }
+
+    if (cept <= height && cept >= 0) {
+        return Eigen::Vector2f(0, cept);
+    } else if (slope < 0) {
+        cept = (height - y)/slope + x;
+        if (cept > -1 && cept < 0) cept = 0; //If we are just a bit negative, fix rounding error
+        if (cept <= width)
+            return Eigen::Vector2f(cept, height);
+        else {
+            printf("ERROR: left image coord out of bounds: %f\n", cept);
+            return Eigen::Vector2f(0,0);
+        }
+    } else if (slope > 0) {
+        cept = -y/slope + x;
+        if (cept > -1 && cept < 0) cept = 0; //If we are just a bit negative, fix rounding error
+        if (cept <= width)
+            return Eigen::Vector2f(cept, 0);
+        else {
+            printf("ERROR: left image coord out of bounds: %f\n", cept);
+            return Eigen::Vector2f(0,0);
+        }
+    }
+}
+
+Eigen::Vector2f KeyFrameDisplay::getRightIntercept(float dist, float angle)
+{
+    float x = dist*sin(abs(angle));
+    float y = dist*cos(abs(angle));
+    float slope = -tan(angle);
+    if (slope > 0)
+        x = width - x;
+    float cept = slope*(width-x) + y;
+    //std::cout << "slope: " << slope << "\n";
+
+    if (abs(tan(angle)) < 0.0001) {
+        return Eigen::Vector2f(width, y);
+    }
+    if (abs(slope) < 0.0001) {
+        return Eigen::Vector2f(x, height);
+    }
+
+    if (cept <= height && cept >= 0)
+        return Eigen::Vector2f(width, cept);
+    else if (slope < 0) {
+        cept = -y/slope + x;
+        if (cept <= width)
+            return Eigen::Vector2f(cept, 0);
+        else {
+            printf("ERROR: right image coord out of bounds: %f\n", cept);
+            return Eigen::Vector2f(0,0);
+        }
+    } else if (slope > 0) {
+        cept = (height - y)/slope + x;
+        if (cept > -1 && cept < 0) cept = 0; //If we are just a bit negative, fix rounding error
+        if (cept <= width)
+            return Eigen::Vector2f(cept, height);
+        else {
+            printf("ERROR: right image coord out of bounds: %f\n", cept);
+            return Eigen::Vector2f(0,0);
+        }
+    }
+}
+
+void KeyFrameDisplay::drawCylinderSegment()
+{
+	if (texture_state  == 0) {
+		std::cout << "No image yet\n";
+		return;
+	}
+	loadTexture();
+
+	const float nbSteps = 200.0;
+
+    //Get angle b/w camera and tunnel in axis
+    Eigen::Vector3f robot_vec = robot_pose.linear()*Eigen::Vector3f(1, 0, 0);
+    float angle;
+
+    //std::cout << "vec:\n" << robot_vec << "\n";
+
+    if (robot_vec(0) != 0) {
+        angle = atan(robot_vec(1)/robot_vec(0));
+    } else if (robot_vec(1) != 0) {
+        angle = M_PI/2;
+    } else {
+        angle = 0;
+    }
+
+    //std::cout << angle << "\n";
+
+    float dist = height*cos(abs(angle)) + (width - height*cos(abs(angle))*sin(abs(angle)))*sin(abs(angle));
+
+    Eigen::Vector2f img_pt;
+
+    /*img_pt = getLeftIntercept(0, angle);
+    std::cout << "dist: " << dist << "\n";
+    std::cout << "lt pt:\n" << img_pt << "\n";
+    img_pt = getRightIntercept(0, angle);
+    std::cout << "rt pt:\n" << img_pt << "\n";
+    img_pt = getLeftIntercept(dist, angle);
+    std::cout << "lb pt:\n" << img_pt << "\n";
+    img_pt = getRightIntercept(dist, angle);
+    std::cout << "tb pt:\n" << img_pt << "\n";
+    img_pt = getLeftIntercept(dist/2, angle);
+    std::cout << "lm pt:\n" << img_pt << "\n";
+    img_pt = getRightIntercept(dist/2, angle);
+    std::cout << "tm pt:\n" << img_pt << "\n";*/
+
+
+    //Set the image to texture with
+	glColor3f(1,1,1);
+    glBindTexture(GL_TEXTURE_2D, texture_handle);  
+    glBegin(GL_QUAD_STRIP);
+    for (int i = 0; i <= nbSteps; ++i) {
+        const float ratio = i / nbSteps;
+        const float pt = ratio*dist;
+        //glColor3f(1.0 - ratio, 0.2f, ratio);
+        //Give sequential texture and 3d points to set up mapping equivalencies
+        img_pt = getLeftIntercept(pt, angle);
+        Eigen::Vector3f global_pt = calcProjectionCameraFrame(img_pt(0), img_pt(1));
+        //glNormal3f(0, -global_pt.y(), -global_pt.z());
+        global_pt *= calcDistance(robot_pose, global_pt, 1);
+        glTexCoord2f(img_pt(0)/width, img_pt(1)/height);
+        glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
+        
+        img_pt = getRightIntercept(pt, angle);
+        global_pt = calcProjectionCameraFrame(img_pt(0), img_pt(1));
+        global_pt *= calcDistance(robot_pose, global_pt, 1);
+        //glNormal3f(0, -global_pt.y(), -global_pt.z());
+        glTexCoord2f(img_pt(0)/width, img_pt(1)/height);
+        glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
+    }
+    glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
 
 void KeyFrameDisplay::drawCam(float lineWidth, float* color)
 {

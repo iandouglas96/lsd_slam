@@ -7,7 +7,7 @@ project(lsd_slam_viewer)
 #  Release : w/o debug symbols, w/ optimization
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel : w/o debug symbols, w/ optimization, stripped binaries
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/thirdparty/Sophus)
 
@@ -27,7 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 
 add_message_files(FILES keyframeMsg.msg keyframeGraphMsg.msg)
-generate_messages(DEPENDENCIES std_msgs geometry_msgs)
+generate_messages(DEPENDENCIES std_msgs sensor_msgs geometry_msgs)
 
 find_package(Qt4 COMPONENTS QtCore QtGUI)
 find_package(OpenGL REQUIRED)
@@ -88,7 +88,8 @@ target_link_libraries(viewer
 			    ${QGLVIEWER_LIBRARY} 
 			    ${catkin_LIBRARIES}
 			    ${Boost_LIBRARIES}
-			    ${QT_LIBRARIES}
+          ${QT_LIBRARIES}
+          ${OpenCV_LIBS}
 			    GL glut GLU
 		     )
 

@@ -21,7 +21,9 @@
 #pragma once
 
 #undef Success
+#include <opencv2/opencv.hpp>
 #include <Eigen/Core>
+#include "boost/thread.hpp"
 
 #include "QGLViewer/qglviewer.h"
 #include "lsd_slam_viewer/keyframeMsg.h"
@@ -57,6 +59,7 @@ public:
 	void setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg);
 	void drawCam(float lineWidth = 1, float* color = 0);
 	void drawPC(float pointSize = 1, float alpha = 1);
+	void drawCylinderSegment();
 	void refreshPC();
 
 	int flushPC(std::ofstream* f);
@@ -74,11 +77,23 @@ public:
 	Sophus::SE3f camToWorld;
 
 private:
+	void setTexture(cv::Mat &tex);
+	void loadTexture();
+	Eigen::Vector3f calcProjectionCameraFrame(float x, float y);
+	float calcDistance(Eigen::Affine3f &robot_pose, Eigen::Vector3f &ray_direction, float tunnel_radius);
+	void drawCam(float lineWidth);
+
+	Eigen::Vector2f getLeftIntercept(float dist, float angle);
+	Eigen::Vector2f getRightIntercept(float dist, float angle);
+
 	// camera parameter
 	// fixed.
 	float fx,fy,cx,cy;
 	float fxi,fyi,cxi,cyi;
+	Eigen::Matrix3f cam_intrinsics;
 	int width, height;
+
+	Eigen::Affine3f robot_pose;
 
 	float my_scaledTH, my_absTH, my_scale;
 	int my_minNearSupport;
@@ -88,6 +103,11 @@ private:
 	// pointcloud data & respective buffer
 	InputPointDense* originalInput;
 
+	//Raw image to render
+	cv::Mat texture;
+	boost::mutex texture_mutex;
+	GLuint texture_handle;
+	int texture_state;
 
 	// buffer & how many
 	GLuint vertexBufferId;

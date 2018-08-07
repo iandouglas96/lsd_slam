@@ -19,6 +19,9 @@
 */
 
 #define GL_GLEXT_PROTOTYPES 1
+#include "KeyFrameDisplay.h"
+#include "KeyFrameGraphDisplay.h"
+
 #include "PointCloudViewer.h"
 #include "qfiledialog.h"
 #include "qcoreapplication.h"
@@ -35,9 +38,6 @@
 #include <GL/glu.h>
 
 #include "QGLViewer/manipulatedCameraFrame.h"
-
-#include "KeyFrameDisplay.h"
-#include "KeyFrameGraphDisplay.h"
 
 #include <iostream>
 #include <fstream>
@@ -163,7 +163,7 @@ QString PointCloudViewer::helpString() const
 void PointCloudViewer::draw()
 {
 	meddleMutex.lock();
-
+	
 
 	if(resetRequested)
 	{
@@ -247,7 +247,7 @@ void PointCloudViewer::draw()
 
 
 
-
+/*
 	if(saveAllVideo)
 	{
 		double span = ros::Time::now().toSec() - lastRealSaveTime;
@@ -264,7 +264,7 @@ void PointCloudViewer::draw()
 		}
 
 
-	}
+	}*/
 }
 
 void PointCloudViewer::keyReleaseEvent(QKeyEvent *e)
