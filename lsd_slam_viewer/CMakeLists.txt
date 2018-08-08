@@ -29,7 +29,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(FILES keyframeMsg.msg keyframeGraphMsg.msg)
 generate_messages(DEPENDENCIES std_msgs sensor_msgs geometry_msgs)
 
-find_package(Qt4 COMPONENTS QtCore QtGUI)
+find_package(Qt4 COMPONENTS QtCore QtGUI REQUIRED)
 find_package(OpenGL REQUIRED)
 set(QT_USE_QTOPENGL TRUE)
 set(QT_USE_QTXML TRUE)
@@ -42,10 +42,10 @@ message("-- QT_INCLUDES : " ${QT_INCLUDES})
 message("-- QGLVIEWER_INCLUDE_DIR : " ${QGLVIEWER_INCLUDE_DIR})
 message("-- QGLVIEWER_LIB : " ${QGLVIEWER_LIBRARY})
 
+include(${QT_USE_FILE})
 include_directories(${QGLVIEWER_INCLUDE_DIR}
 		    ${catkin_INCLUDE_DIRS} 
-		    ${EIGEN_INCLUDE_DIR}
-		    ${QT_INCLUDES} )
+		    ${EIGEN_INCLUDE_DIR})
 
 # SSE flags
 set(CMAKE_CXX_FLAGS

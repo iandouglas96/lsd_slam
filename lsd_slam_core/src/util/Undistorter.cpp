@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include <fstream>
+#include <iostream>
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
@@ -591,6 +592,7 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 	if (useCLAHE) {
 		cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
 		clahe->setClipLimit(claheClipLimit);
+		std::cout << clahe->getTilesGridSize() << "\n";
 		clahe->apply(undst, undst);
 	}
 	if (out_width != in_width) {
