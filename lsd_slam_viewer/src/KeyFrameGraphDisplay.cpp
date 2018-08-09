@@ -49,8 +49,10 @@ void KeyFrameGraphDisplay::draw()
 	float color[3] = {0,0,1};
 	for(unsigned int i=0;i<keyframes.size();i++)
 	{
-		if (showTunnelImages)
+		if (showTunnelImages) {
+			keyframes[i]->drawCylinder();
 			keyframes[i]->drawCylinderSegment();
+		}	
 
 		if(showKFCameras)
 			keyframes[i]->drawCam(lineTesselation, color);
@@ -67,7 +69,7 @@ void KeyFrameGraphDisplay::draw()
 		int numpts = 0;
 		for(unsigned int i=0;i<keyframes.size();i++)
 		{
-			if((int)i > cutFirstNKf)
+			if((int)i > cutFirstNKf && showKFPointclouds)
 				numpts += keyframes[i]->flushPC(&f);
 		}
 		f.flush();

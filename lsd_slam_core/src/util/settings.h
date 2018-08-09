@@ -239,6 +239,7 @@ extern int maskRectangleBottom;
 
 extern bool useCLAHE;
 extern float claheClipLimit;
+extern int claheTileCount;
 
 extern int initResScaleHeight;
 extern int initResScaleWidth;

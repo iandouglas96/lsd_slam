@@ -93,6 +93,7 @@ int maskRectangleBottom = 1024;
 
 bool useCLAHE = true;
 float claheClipLimit = 0.5;
+int claheTileCount = 8;
 
 int initResScaleHeight = 16;
 int initResScaleWidth = 4;

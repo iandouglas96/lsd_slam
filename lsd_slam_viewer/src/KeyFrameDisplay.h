@@ -59,6 +59,7 @@ public:
 	void setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg);
 	void drawCam(float lineWidth = 1, float* color = 0);
 	void drawPC(float pointSize = 1, float alpha = 1);
+	void drawCylinder();
 	void drawCylinderSegment();
 	void refreshPC();
 
@@ -81,7 +82,6 @@ private:
 	void loadTexture();
 	Eigen::Vector3f calcProjectionCameraFrame(float x, float y);
 	float calcDistance(Eigen::Vector3f &ray_direction);
-	void drawCam(float lineWidth);
 
 	Eigen::Vector2f getLeftIntercept(float dist, float angle);
 	Eigen::Vector2f getRightIntercept(float dist, float angle);
@@ -107,6 +107,7 @@ private:
 	//Raw image to render
 	cv::Mat texture;
 	boost::mutex texture_mutex;
+	boost::mutex pose_mutex;
 	GLuint texture_handle;
 	int texture_state;
 

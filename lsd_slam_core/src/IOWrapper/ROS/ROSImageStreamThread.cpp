@@ -379,7 +379,10 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 			if (cnt % width_ > maskRectangleLeft && cnt % width_ < maskRectangleRight && cnt / width_ > maskRectangleTop && cnt / width_ < maskRectangleBottom) {
 				(*it_grey) = 0;
 			}
-			if (cnt % width_ > 0 && cnt % width_ < 1280 && cnt / width_ > 980 && cnt / width_ < 1080) {
+			if (cnt % width_ > 0 && cnt % width_ < width_ && cnt / width_ > 0 && cnt / width_ < 100) {
+				(*it_grey) = 0;
+			}
+			if (cnt % width_ > 0 && cnt % width_ < width_ && cnt / width_ > height_-100 && cnt / width_ < height_) {
 				(*it_grey) = 0;
 			}
 			cnt ++;

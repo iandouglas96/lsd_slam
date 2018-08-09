@@ -50,12 +50,12 @@ KeyFrameDisplay::KeyFrameDisplay()
 
 	//Init stuff to reasonable starting values
 	robot_pose.translation() << 0, 0, 0;
-    robot_pose.linear() <<  1, 0, 0,
-                            0, 1, 0,
-                            0, 0, 1;
+    robot_pose.linear().setIdentity();
+
 	tunnel_radius = 0;
 
 	texture_state = 0;
+	fx = 0;
 }
 
 
@@ -78,20 +78,22 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	// copy over campose.
 	memcpy(camToWorld.data(), msg->camToWorld.data(), 7*sizeof(float));
 
-	fx = msg->fx;
-	fy = msg->fy;
-	cx = msg->cx;
-	cy = msg->cy;
+	if (fx == 0) {
+		fx = msg->fx;
+		fy = msg->fy;
+		cx = msg->cx;
+		cy = msg->cy;
 
-	cam_intrinsics << fx, 0, cx, 0, fy, cy, 0, 0, 1;
+		cam_intrinsics << fx, 0, cx, 0, fy, cy, 0, 0, 1;
 
-	fxi = 1/fx;
-	fyi = 1/fy;
-	cxi = -cx / fx;
-	cyi = -cy / fy;
+		fxi = 1/fx;
+		fyi = 1/fy;
+		cxi = -cx / fx;
+		cyi = -cy / fy;
 
-	width = msg->width;
-	height = msg->height;
+		width = msg->width;
+		height = msg->height;
+	}
 	id = msg->id;
 	time = msg->time;
 
@@ -100,6 +102,9 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	tf2::convert(msg->tunnel_pose.position, pos);
 	Eigen::Quaterniond rot;
 	tf2::convert(msg->tunnel_pose.orientation, rot);
+
+	
+	pose_mutex.lock();
 	robot_pose.linear() = rot.normalized().toRotationMatrix().cast<float>();
 	robot_pose.translation() = pos.cast<float>();
 
@@ -107,16 +112,19 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	//std::cout << "vis rot: " << robot_pose.linear() << "\n";
 
 	//Rotate 90 degrees to reconcile coord frames.
-	Eigen::Vector3f euler = robot_pose.rotation().eulerAngles(2, 1, 0);
-	//std::cout << "vis eul: " << euler << "\n";
-	robot_pose.linear() = (Eigen::AngleAxisf(euler(2), Eigen::Vector3f::UnitX())*
-						   Eigen::AngleAxisf(euler(0), Eigen::Vector3f::UnitY())*
-						   Eigen::AngleAxisf(euler(1)+M_PI/2, Eigen::Vector3f::UnitZ())).matrix();
+	Eigen::Vector3f euler = robot_pose.rotation().eulerAngles(0, 1, 2);
+	std::cout << "vis eul: " << euler << "\n";
+	robot_pose.linear() = (Eigen::AngleAxisf(euler(2), Eigen::Vector3f::UnitY())*
+						   Eigen::AngleAxisf(euler(0), Eigen::Vector3f::UnitX())*
+						   Eigen::AngleAxisf(euler(1)-M_PI/2, Eigen::Vector3f::UnitZ())).matrix();
 	robot_pose.translation() = Eigen::Vector3f(robot_pose.translation()(1), robot_pose.translation()(0), robot_pose.translation()(2));
 
 	tunnel_radius = msg->tunnel_radius;
-
+	pose_mutex.unlock();
 	
+	std::cout << "radius: " << msg->tunnel_radius << "\n";
+	
+	std::cout << "rot: " << robot_pose.linear() << "\n";
 
 	// copy over image
 	if (msg->image.size() == sizeof(float)*width*height) {
@@ -340,9 +348,11 @@ float KeyFrameDisplay::calcDistance(Eigen::Vector3f &ray_direction)
     //ROS_INFO("%f, %f, %f, %f", ray_direction.x(), ray_direction.y(), ray_direction.z(), ray_direction.w());
 
     //Convert to eigen datatypes, which are much faster
+	pose_mutex.lock();
     Eigen::Vector3f pos = robot_pose.translation();
     Eigen::Vector3f dir(ray_direction.x(), ray_direction.y(), ray_direction.z());
     dir = robot_pose.linear()*dir;
+	pose_mutex.unlock();
 
     //project onto y-z plane (cross sectional plane of tunnel), magnitude doesn't matter
     Eigen::Vector3f proj = Eigen::Vector3f::UnitX().cross(dir.cross(Eigen::Vector3f::UnitX()));
@@ -451,8 +461,11 @@ void KeyFrameDisplay::drawCylinderSegment()
 	const float nbSteps = 200.0;
 
     //Get angle b/w camera and tunnel in axis
+	pose_mutex.lock();
+	//std::cout << "seg: " << robot_pose.matrix() << "\n";
     Eigen::Vector3f robot_vec = robot_pose.linear()*Eigen::Vector3f(1, 0, 0);
-    float angle;
+    pose_mutex.unlock();
+	float angle;
 
     //std::cout << "vec:\n" << robot_vec << "\n";
 
@@ -500,6 +513,7 @@ void KeyFrameDisplay::drawCylinderSegment()
         img_pt = getLeftIntercept(pt, angle);
         Eigen::Vector3f global_pt = calcProjectionCameraFrame(img_pt(0), img_pt(1));
         //glNormal3f(0, -global_pt.y(), -global_pt.z());
+		//global_pt = camToWorld.rotationMatrix()*global_pt;
         global_pt *= calcDistance(global_pt);
         glTexCoord2f(img_pt(0)/width, img_pt(1)/height);
 		global_pt += camToWorld.translation(); //Translate globally
@@ -507,6 +521,7 @@ void KeyFrameDisplay::drawCylinderSegment()
         
         img_pt = getRightIntercept(pt, angle);
         global_pt = calcProjectionCameraFrame(img_pt(0), img_pt(1));
+		//global_pt = camToWorld.rotationMatrix()*global_pt;
         global_pt *= calcDistance(global_pt);
         //glNormal3f(0, -global_pt.y(), -global_pt.z());
         glTexCoord2f(img_pt(0)/width, img_pt(1)/height);
@@ -515,6 +530,36 @@ void KeyFrameDisplay::drawCylinderSegment()
     }
     glEnd();
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void KeyFrameDisplay::drawCylinder()
+{
+	glPushMatrix();
+		Sophus::Matrix4f m = camToWorld.matrix();
+    	glMultMatrixf((GLfloat*)m.data());
+
+		pose_mutex.lock();
+		//std::cout << "cyl: " << robot_pose.matrix() << "\n";
+		glColor3f(0.9f, 0.9f, 0.9f);
+		glRotatef(90.0,0.0,1.0,0.0);
+
+		//std::cout << m << "\n";
+		 //Initial rotation to align coordinates
+		//Convert to axis angle
+		Eigen::AngleAxisf aa;//
+		aa.fromRotationMatrix(robot_pose.linear());
+
+		//std::cout << "aa: " << aa.angle()*(180.0/3.141592653589793238463) << ", " << aa.axis()(0) << ", " << aa.axis()(1) << ", " << aa.axis()(2) << "\n";
+
+		glRotatef(aa.angle()*(180.0/3.141592653589793238463), aa.axis()(2), -aa.axis()(1), -aa.axis()(0)); //Rotate in accordance with known orientation
+		glTranslatef(0,0,-0.5); //Center cylinder on camera
+		glTranslatef(robot_pose.translation().z(), -robot_pose.translation().y(), robot_pose.translation().x());
+
+		static GLUquadric *qobj = gluNewQuadric();
+		gluQuadricNormals(qobj, GLU_SMOOTH);
+		gluCylinder(qobj, tunnel_radius-0.01,  tunnel_radius-0.01, 1.0, 32, 32);
+		pose_mutex.unlock();
+	glPopMatrix();
 }
 
 void KeyFrameDisplay::drawCam(float lineWidth, float* color)

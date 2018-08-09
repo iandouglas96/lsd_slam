@@ -100,6 +100,7 @@ void dynConfCb(lsd_slam_core::LSDParamsConfig &config, uint32_t level)
 
 	useCLAHE = config.useCLAHE;
 	claheClipLimit = config.claheClipLimit;
+	claheTileCount = config.claheTileCount;
 
 	initResScaleHeight = config.initResScaleHeight;
 	initResScaleWidth = config.initResScaleWidth;
