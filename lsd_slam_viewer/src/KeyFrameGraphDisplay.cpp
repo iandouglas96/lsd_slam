@@ -49,10 +49,11 @@ void KeyFrameGraphDisplay::draw()
 	float color[3] = {0,0,1};
 	for(unsigned int i=0;i<keyframes.size();i++)
 	{
-		if (showTunnelImages) {
+		if (showCylinders)
 			keyframes[i]->drawCylinder();
-			keyframes[i]->drawCylinderSegment();
-		}	
+
+		if (showTunnelImages) 
+			keyframes[i]->drawCylinderSegmentHD();
 
 		if(showKFCameras)
 			keyframes[i]->drawCam(lineTesselation, color);

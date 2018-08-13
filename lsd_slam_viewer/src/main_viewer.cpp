@@ -57,6 +57,7 @@ void dynConfCb(lsd_slam_viewer::LSDSLAMViewerParamsConfig &config, uint32_t leve
 	showConstraints = config.showConstraints;
 	showCurrentCamera = config.showCurrentCamera;
 	showCurrentPointcloud = config.showCurrentPointcloud;
+	showCylinders = config.showCylinders;
 
 
 	scaledDepthVarTH = exp10( config.scaledDepthVarTH );
@@ -67,6 +68,8 @@ void dynConfCb(lsd_slam_viewer::LSDSLAMViewerParamsConfig &config, uint32_t leve
 
 	saveAllVideo = config.saveAllVideo;
 
+	axis1 = config.axis1;
+	axis2 = config.axis2;
 }
 
 void frameCb(lsd_slam_viewer::keyframeMsgConstPtr msg)

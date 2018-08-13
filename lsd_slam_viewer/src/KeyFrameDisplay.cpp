@@ -112,12 +112,20 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	//std::cout << "vis rot: " << robot_pose.linear() << "\n";
 
 	//Rotate 90 degrees to reconcile coord frames.
-	Eigen::Vector3f euler = robot_pose.rotation().eulerAngles(0, 1, 2);
+	/*Eigen::Vector3f euler = robot_pose.rotation().eulerAngles(0, 1, 2);
 	std::cout << "vis eul: " << euler << "\n";
-	robot_pose.linear() = (Eigen::AngleAxisf(euler(2), Eigen::Vector3f::UnitY())*
-						   Eigen::AngleAxisf(euler(0), Eigen::Vector3f::UnitX())*
-						   Eigen::AngleAxisf(euler(1)-M_PI/2, Eigen::Vector3f::UnitZ())).matrix();
-	robot_pose.translation() = Eigen::Vector3f(robot_pose.translation()(1), robot_pose.translation()(0), robot_pose.translation()(2));
+	robot_pose.linear() = (Eigen::AngleAxisf(-M_PI/2, Eigen::Vector3f::UnitZ())).matrix();
+	robot_pose.translation() = Eigen::Vector3f(robot_pose.translation()(1), robot_pose.translation()(0), robot_pose.translation()(2));*/
+
+	Eigen::AngleAxisf aa;
+    aa.fromRotationMatrix(robot_pose.linear());
+	robot_pose.linear() = (Eigen::AngleAxisf(-M_PI/2, Eigen::Vector3f::UnitZ())).matrix();//Initial coord alignment
+	
+	std::cout << "axis:" << aa.axis() << "\n";
+	aa.axis() = Eigen::Vector3f(aa.axis()(0), -aa.axis()(2), aa.axis()(1));
+	robot_pose.linear() = aa*robot_pose.linear();
+	robot_pose.translation() = Eigen::Vector3f(robot_pose.translation()(0), robot_pose.translation()(2), robot_pose.translation()(1));
+
 
 	tunnel_radius = msg->tunnel_radius;
 	pose_mutex.unlock();
@@ -368,6 +376,7 @@ float KeyFrameDisplay::calcDistance(Eigen::Vector3f &ray_direction)
     return t;
 }
 
+//Legacy, for reference only
 Eigen::Vector2f KeyFrameDisplay::getLeftIntercept(float dist, float angle)
 {
     float x = dist*sin(abs(angle));
@@ -411,6 +420,7 @@ Eigen::Vector2f KeyFrameDisplay::getLeftIntercept(float dist, float angle)
     }
 }
 
+//Legacy, for reference only
 Eigen::Vector2f KeyFrameDisplay::getRightIntercept(float dist, float angle)
 {
     float x = dist*sin(abs(angle));
@@ -450,6 +460,8 @@ Eigen::Vector2f KeyFrameDisplay::getRightIntercept(float dist, float angle)
     }
 }
 
+//Render using a single strip.  This is computationally faster, but more complex and results in
+//image distortion if the robot is in a steep tunnel segment.  Now legacy, kept for reference.
 void KeyFrameDisplay::drawCylinderSegment()
 {
 	if (texture_state  == 0) {
@@ -513,7 +525,7 @@ void KeyFrameDisplay::drawCylinderSegment()
         img_pt = getLeftIntercept(pt, angle);
         Eigen::Vector3f global_pt = calcProjectionCameraFrame(img_pt(0), img_pt(1));
         //glNormal3f(0, -global_pt.y(), -global_pt.z());
-		//global_pt = camToWorld.rotationMatrix()*global_pt;
+		global_pt = camToWorld.rotationMatrix()*global_pt;
         global_pt *= calcDistance(global_pt);
         glTexCoord2f(img_pt(0)/width, img_pt(1)/height);
 		global_pt += camToWorld.translation(); //Translate globally
@@ -521,7 +533,7 @@ void KeyFrameDisplay::drawCylinderSegment()
         
         img_pt = getRightIntercept(pt, angle);
         global_pt = calcProjectionCameraFrame(img_pt(0), img_pt(1));
-		//global_pt = camToWorld.rotationMatrix()*global_pt;
+		global_pt = camToWorld.rotationMatrix()*global_pt;
         global_pt *= calcDistance(global_pt);
         //glNormal3f(0, -global_pt.y(), -global_pt.z());
         glTexCoord2f(img_pt(0)/width, img_pt(1)/height);
@@ -529,6 +541,47 @@ void KeyFrameDisplay::drawCylinderSegment()
         glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
     }
     glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+//Render using multiple strips.  Allows for more complex geometries and better texture mapping.
+//Also mathematically simpler
+void KeyFrameDisplay::drawCylinderSegmentHD()
+{
+    const float nbSteps = 50.0;
+
+	loadTexture();
+	glColor3f(1,1,1);
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBindTexture(GL_TEXTURE_2D, texture_handle);  
+    
+    for (int x = 0; x <= nbSteps; ++x) {
+        glBegin(GL_QUAD_STRIP);
+        for (int y = 0; y <= nbSteps; ++y) {
+            const float x_ratio = x / nbSteps;
+            const float y_ratio = y / nbSteps;
+            const float x_pt = x_ratio*width;
+            const float y_pt = y_ratio*width;
+            //glColor3f(1.0 - ratio, 0.2f, ratio);
+            //Give sequential texture and 3d points to set up mapping equivalencies
+            Eigen::Vector3f global_pt = calcProjectionCameraFrame(x_pt, y_pt);
+            //glNormal3f(0, -global_pt.y(), -global_pt.z());
+            global_pt *= calcDistance(global_pt);
+            glTexCoord2f(x_pt/width, y_pt/height);
+            global_pt += camToWorld.translation();
+            glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
+            
+            global_pt = calcProjectionCameraFrame(x_pt+(width/nbSteps), y_pt);
+            global_pt *= calcDistance(global_pt);
+            //glNormal3f(0, -global_pt.y(), -global_pt.z());
+            glTexCoord2f((x_pt+(width/nbSteps))/width, (y_pt)/height);
+            global_pt += camToWorld.translation();
+            glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
+        }
+        glEnd();
+    }
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -540,7 +593,7 @@ void KeyFrameDisplay::drawCylinder()
 
 		pose_mutex.lock();
 		//std::cout << "cyl: " << robot_pose.matrix() << "\n";
-		glColor3f(0.9f, 0.9f, 0.9f);
+		glColor3f(0.1f, 0.1f, 0.1f);
 		glRotatef(90.0,0.0,1.0,0.0);
 
 		//std::cout << m << "\n";
@@ -552,12 +605,12 @@ void KeyFrameDisplay::drawCylinder()
 		//std::cout << "aa: " << aa.angle()*(180.0/3.141592653589793238463) << ", " << aa.axis()(0) << ", " << aa.axis()(1) << ", " << aa.axis()(2) << "\n";
 
 		glRotatef(aa.angle()*(180.0/3.141592653589793238463), aa.axis()(2), -aa.axis()(1), -aa.axis()(0)); //Rotate in accordance with known orientation
-		glTranslatef(0,0,-0.5); //Center cylinder on camera
+		glTranslatef(0,0,-0.01); //Center cylinder on camera
 		glTranslatef(robot_pose.translation().z(), -robot_pose.translation().y(), robot_pose.translation().x());
 
 		static GLUquadric *qobj = gluNewQuadric();
 		gluQuadricNormals(qobj, GLU_SMOOTH);
-		gluCylinder(qobj, tunnel_radius-0.01,  tunnel_radius-0.01, 1.0, 32, 32);
+		gluCylinder(qobj, tunnel_radius,  tunnel_radius, 0.02, 32, 32);
 		pose_mutex.unlock();
 	glPopMatrix();
 }

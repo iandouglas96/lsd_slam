@@ -32,6 +32,7 @@ extern int  imageWidth;
 extern bool showConstraints;
 extern bool showCurrentCamera;
 extern bool showCurrentPointcloud;
+extern bool showCylinders;
 
 extern float scaledDepthVarTH;
 extern float absDepthVarTH;
@@ -43,3 +44,6 @@ extern bool saveAllVideo;
 extern int numRefreshedAlready;
 
 extern double lastFrameTime;
+
+extern float axis1;
+extern float axis2;

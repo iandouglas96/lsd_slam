@@ -34,6 +34,7 @@ int imageWidth = 4;
 bool showConstraints = true;
 bool showCurrentCamera = true;
 bool showCurrentPointcloud = true;
+bool showCylinders = true;
 
 float scaledDepthVarTH = 20;
 float absDepthVarTH = 3;
@@ -47,3 +48,6 @@ int numRefreshedAlready = 0;
 
 // cut-off after this
 double lastFrameTime = 1e15;
+
+float axis1 = 0;
+float axis2 = 0;

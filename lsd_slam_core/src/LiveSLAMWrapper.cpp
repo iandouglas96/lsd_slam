@@ -110,7 +110,7 @@ void LiveSLAMWrapper::Loop()
 		//ROS_INFO("%f", ((ROSImageStreamThread*)imageStream)->getDepth(500,500));
 
 		// process image
-		Util::displayImage("MyVideo", image.data);
+		Util::displayImage("Undist image", image.data);
 		newImageCallback(image.data, image.timestamp);
 
 		Util::displayThreadLoop();

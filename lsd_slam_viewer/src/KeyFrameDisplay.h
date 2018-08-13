@@ -61,6 +61,7 @@ public:
 	void drawPC(float pointSize = 1, float alpha = 1);
 	void drawCylinder();
 	void drawCylinderSegment();
+	void drawCylinderSegmentHD();
 	void refreshPC();
 
 	int flushPC(std::ofstream* f);
