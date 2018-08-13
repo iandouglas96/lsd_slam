@@ -36,15 +36,14 @@
 #include <iostream>
 #include <fstream>
 
-
 namespace lsd_slam
 {
-
 
 using namespace cv;
 
 ROSImageStreamThread::ROSImageStreamThread()
 {
+	nh_ = ros::NodeHandle();
 	//load params
 	nh_.param("/lsd_slam/use_tunnel_estimator", use_tunnel_estimator, false);
 
@@ -55,8 +54,16 @@ ROSImageStreamThread::ROSImageStreamThread()
 	have_sensor_pose = false;
 
 	// subscribe
-	vid_channel = nh_.resolveName("image");
-	vid_sub     = nh_.subscribe(vid_channel,1, &ROSImageStreamThread::vidCb, this);
+	top_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_left_image"), 1);
+	top_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_right_image"), 1);
+	bottom_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_left_image"), 1);
+	bottom_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_right_image"), 1);
+
+	image_sub = new message_filters::Synchronizer<SynchPolicy>(SynchPolicy(1),
+		*top_left_sub, *top_right_sub, *bottom_left_sub, *bottom_right_sub);
+
+	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));
+
 	pointcloud_sub = nh_.subscribe(nh_.resolveName("pointcloud"), 1, &ROSImageStreamThread::pointCloudCb, this);
 	std::string radius_channel = nh_.resolveName("local_tunnel_radius");
 	radius_sub = nh_.subscribe(radius_channel,1, &ROSImageStreamThread::radiusCb, this);
@@ -190,6 +197,11 @@ void ROSImageStreamThread::unitVectorToPose(const std::string& frame, cv::Point3
 
 ROSImageStreamThread::~ROSImageStreamThread()
 {
+	delete image_sub;
+	delete top_left_sub;
+	delete bottom_left_sub;
+	delete top_right_sub;
+	delete bottom_right_sub;
 	delete imageBuffer;
 }
 
@@ -319,23 +331,26 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 	haveDepthMap = true;
 }
 
-void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
+void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
+			   					 const sensor_msgs::ImageConstPtr top_right_img, 
+			   					 const sensor_msgs::ImageConstPtr bottom_left_img, 
+			   					 const sensor_msgs::ImageConstPtr bottom_right_img)
 {
 	if(!haveCalib) return;
 
-	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
+	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(top_left_img, sensor_msgs::image_encodings::MONO8);
 
-	if(img->header.seq < (unsigned int)lastSEQ)
+	if(top_left_img->header.seq < (unsigned int)lastSEQ)
 	{
 		printf("Backward-Jump in SEQ detected, but ignoring for now.\n");
 		lastSEQ = 0;
 		return;
 	}
-	lastSEQ = img->header.seq;
+	lastSEQ = top_left_img->header.seq;
 
 	TimestampedMat bufferItem;
-	if(img->header.stamp.toSec() != 0)
-		bufferItem.timestamp =  Timestamp(img->header.stamp.toSec());
+	if(top_left_img->header.stamp.toSec() != 0)
+		bufferItem.timestamp =  Timestamp(top_left_img->header.stamp.toSec());
 	else
 		bufferItem.timestamp =  Timestamp(ros::Time::now().toSec());
 
