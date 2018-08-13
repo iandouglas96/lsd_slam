@@ -105,9 +105,6 @@ void LiveSLAMWrapper::Loop()
 		
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
-		
-		//This is clunky, probably should handle differently
-		//ROS_INFO("%f", ((ROSImageStreamThread*)imageStream)->getDepth(500,500));
 
 		// process image
 		Util::displayImage("Undist image", image.data);
