@@ -239,6 +239,9 @@ private:
 	/// Is true if the undistorter object is valid (has been initialized with
 	/// a valid configuration)
 	bool valid;
+
+	//Image to use as mask
+	cv::Mat mask;
 };
 
 }

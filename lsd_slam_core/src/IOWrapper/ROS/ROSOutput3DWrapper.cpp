@@ -115,7 +115,7 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	fMsg.image.resize(sizeof(float)*w*h);
 	memcpy(fMsg.image.data(), f->image(0), sizeof(float)*w*h); //Copy data
 	tf2::convert(f->tunnelPose().transform().translation(), fMsg.tunnel_pose.position);
-	std::cout << "pos: " << f->tunnelPose().transform().translation() << "\n";
+	//std::cout << "pos: " << f->tunnelPose().transform().translation() << "\n";
 	tf2::convert(f->tunnelPose().transform().unit_quaternion(), fMsg.tunnel_pose.orientation);
 	fMsg.tunnel_radius = f->tunnelRadius();
 

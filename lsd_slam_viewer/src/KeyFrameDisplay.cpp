@@ -121,7 +121,7 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
     aa.fromRotationMatrix(robot_pose.linear());
 	robot_pose.linear() = (Eigen::AngleAxisf(-M_PI/2, Eigen::Vector3f::UnitZ())).matrix();//Initial coord alignment
 	
-	std::cout << "axis:" << aa.axis() << "\n";
+	//std::cout << "axis:" << aa.axis() << "\n";
 	aa.axis() = Eigen::Vector3f(aa.axis()(0), -aa.axis()(2), aa.axis()(1));
 	robot_pose.linear() = aa*robot_pose.linear();
 	robot_pose.translation() = Eigen::Vector3f(robot_pose.translation()(0), robot_pose.translation()(2), robot_pose.translation()(1));
@@ -130,9 +130,9 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	tunnel_radius = msg->tunnel_radius;
 	pose_mutex.unlock();
 	
-	std::cout << "radius: " << msg->tunnel_radius << "\n";
+	//std::cout << "radius: " << msg->tunnel_radius << "\n";
 	
-	std::cout << "rot: " << robot_pose.linear() << "\n";
+	//std::cout << "rot: " << robot_pose.linear() << "\n";
 
 	// copy over image
 	if (msg->image.size() == sizeof(float)*width*height) {

@@ -26,8 +26,10 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <Eigen/Core>
 #include "util/settings.h"
+#include <sys/time.h>
 
 namespace lsd_slam
 {
@@ -455,13 +457,14 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 	std::ifstream infile(configFileName);
 	assert(infile.good());
 
-	std::string l1, l2, l3, l4, l5;
+	std::string l1, l2, l3, l4, l5, l6;
 
 	std::getline(infile,l1);
 	std::getline(infile,l2);
 	std::getline(infile,l3);
 	std::getline(infile,l4);
 	std::getline(infile,l5);
+	std::getline(infile,l6);
 
 	// l1 & l2
 	if(std::sscanf(l1.c_str(), "%f %f %f %f %f %f %f %f",
@@ -520,6 +523,11 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 		printf("Out: Failed to Read Output resolution... not rectifying.\n");
 		valid = false;
 	}
+	// l6 (mask)
+	if (l6 != "none")
+	{
+		mask = cv::imread(l6, cv::IMREAD_GRAYSCALE);
+	}
 	
 	cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_32F);
 	for (int i = 0; i < 4; ++ i)
@@ -574,6 +582,8 @@ UndistorterOpenCV::~UndistorterOpenCV()
 
 void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) const
 {
+	struct timeval tv_start, tv_end;
+	gettimeofday(&tv_start, NULL);
 	cv::Mat undst;
 	cv::remap(image, undst, map1, map2, cv::INTER_LINEAR);
 
@@ -595,10 +605,30 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 		clahe->setTilesGridSize(cv::Size(claheTileCount, claheTileCount));
 		clahe->apply(undst, undst);
 	}
+
+	if (mask.size() == cv::Size(in_width, in_height)) {
+		cv::MatIterator_<uchar> it_grey, end_grey;
+		cv::MatConstIterator_<uchar> it_mask;
+		it_grey = undst.begin<uchar>();
+		it_mask = mask.begin<uchar>();
+		end_grey = undst.end<uchar>();
+
+		for( ; it_grey != end_grey; ++it_grey, ++it_mask) {
+			if ((*it_mask) < 155) { //If darker than a certain value, mask out
+				(*it_grey) = 0;
+			}
+		}
+	}
+
 	if (out_width != in_width) {
 		cv::resize(undst,undst,cv::Size(out_width, out_height));//resize image
 	}
 	undst.copyTo(result);
+	gettimeofday(&tv_end, NULL);
+	if(enablePrintDebugInfo && printOverallTiming) {
+		float msUndist = ((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
+		printf("Undistortion: %fms\n", msUndist);
+	}
 }
 
 const cv::Mat& UndistorterOpenCV::getK() const
