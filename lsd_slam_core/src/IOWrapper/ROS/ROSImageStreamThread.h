@@ -97,7 +97,7 @@ public:
 private:
 	//Image stream stuff
 	bool haveCalib, haveDepthMap;
-	Undistorter* undistorter;
+	Undistorter* undistorter[NUM_CAMERAS];
 
 	ros::NodeHandle nh_;
 

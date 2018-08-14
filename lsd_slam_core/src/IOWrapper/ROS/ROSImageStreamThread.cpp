@@ -75,8 +75,10 @@ ROSImageStreamThread::ROSImageStreamThread()
     tunnel_radius = -1;
 
 	// imagebuffer
-	imageBuffer = new NotifyBuffer<TimestampedMat>(8);
-	undistorter = 0;
+	imageBuffer = new NotifyBuffer<TimestampedMultiMat>(8);
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		undistorter[0] = 0;
+	}
 	lastSEQ = 0;
 
 	haveCalib = false;
@@ -222,23 +224,33 @@ void ROSImageStreamThread::setCalibration(std::string file)
 	}
 	else
 	{
-		undistorter = Undistorter::getUndistorterForFile(file.c_str());
+		std::ifstream infile(file);
+		assert(infile.good());
 
-		if(undistorter==0)
-		{
-			printf("Failed to read camera calibration from file... wrong syntax?\n");
-			exit(0);
+		std::string line;
+
+		for (int i=0; i<NUM_CAMERAS; i++) {
+			std::getline(infile,line);
+			undistorter[i] = Undistorter::getUndistorterForFile(line.c_str());
+
+			if(undistorter[i]==0)
+			{
+				printf("Failed to read camera calibration %n from file... wrong syntax?\n", i);
+				exit(0);
+			}
 		}
 
-		width_ = undistorter->getOutputWidth();
-		height_ = undistorter->getOutputHeight();
-		old_width_ = undistorter->getInputWidth();
-		old_height_ = undistorter->getInputHeight();
+		//Assume all the cameras are the same
+		//Make projection matrices all the same
+		width_ = undistorter[0]->getOutputWidth();
+		height_ = undistorter[0]->getOutputHeight();
+		old_width_ = undistorter[0]->getInputWidth();
+		old_height_ = undistorter[0]->getInputHeight();
 
-		fx_ = undistorter->getK().at<double>(0, 0);
-		fy_ = undistorter->getK().at<double>(1, 1);
-		cx_ = undistorter->getK().at<double>(0, 2);
-		cy_ = undistorter->getK().at<double>(1, 2);
+		fx_ = undistorter[0]->getK().at<double>(0, 0);
+		fy_ = undistorter[0]->getK().at<double>(1, 1);
+		cx_ = undistorter[0]->getK().at<double>(0, 2);
+		cy_ = undistorter[0]->getK().at<double>(1, 2);
 
     	this->cam_intrinsics = cv::Matx33d(fx_, 0, cx_, 0, fy_, cy_, 0, 0, 1);//make Matx33f
 		std::cout << this->cam_intrinsics << "\n";
@@ -338,7 +350,11 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
 {
 	if(!haveCalib) return;
 
-	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(top_left_img, sensor_msgs::image_encodings::MONO8);
+	cv_bridge::CvImagePtr cv_ptr[NUM_CAMERAS];
+	cv_ptr[0] = cv_bridge::toCvCopy(top_left_img, sensor_msgs::image_encodings::MONO8);
+	cv_ptr[1] = cv_bridge::toCvCopy(top_right_img, sensor_msgs::image_encodings::MONO8);
+	cv_ptr[2] = cv_bridge::toCvCopy(bottom_left_img, sensor_msgs::image_encodings::MONO8);
+	cv_ptr[3] = cv_bridge::toCvCopy(bottom_right_img, sensor_msgs::image_encodings::MONO8);
 
 	if(top_left_img->header.seq < (unsigned int)lastSEQ)
 	{
@@ -348,59 +364,61 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
 	}
 	lastSEQ = top_left_img->header.seq;
 
-	TimestampedMat bufferItem;
+	TimestampedMultiMat bufferItem;
 	if(top_left_img->header.stamp.toSec() != 0)
 		bufferItem.timestamp =  Timestamp(top_left_img->header.stamp.toSec());
 	else
 		bufferItem.timestamp =  Timestamp(ros::Time::now().toSec());
 
-	if(undistorter != 0)
-	{
-		assert(undistorter->isValid());
-		undistorter->undistort(cv_ptr->image,bufferItem.data);
-	}
-	else
-	{
-		//ROS_INFO("%i, %i", this->width_, this->height_);
-		//cv::resize(cv_ptr->image, cv_ptr->image, cv::Size(this->width_, this->height_));
-		bufferItem.data = cv_ptr->image;
-	}
-
-	cv::MatIterator_<uchar> it_grey, end_grey;
-	it_grey = bufferItem.data.begin<uchar>();
-	end_grey = bufferItem.data.end<uchar>();
-	//Convert to CIE L*a*b* (takes 2 steps)
-	if (maskBrightnessLimit < 255) {
-		cv::Mat img_lab;
-		cvtColor(bufferItem.data, img_lab, cv::COLOR_GRAY2RGB);
-		cvtColor(img_lab, img_lab, cv::COLOR_RGB2Lab);
-		//Scan through image pixels
-		cv::MatIterator_<Vec3b> it_lab, end_lab;
-		it_lab = img_lab.begin<Vec3b>();
-		end_lab = img_lab.end<Vec3b>();
-		
-		for( ; it_grey != end_grey, it_lab != end_lab; ++it_grey, ++it_lab)
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		if(undistorter[i] != 0)
 		{
-			if ((*it_lab)[0] > maskBrightnessLimit) { //Is brightness above a certain level?
-				(*it_grey) = 0;
+			assert(undistorter[i]->isValid());
+			undistorter[i]->undistort(cv_ptr[i]->image,bufferItem.data[i]);
+		}
+		else
+		{
+			//ROS_INFO("%i, %i", this->width_, this->height_);
+			//cv::resize(cv_ptr->image, cv_ptr->image, cv::Size(this->width_, this->height_));
+			bufferItem.data[i] = cv_ptr[i]->image;
+		}
+
+		cv::MatIterator_<uchar> it_grey, end_grey;
+		it_grey = bufferItem.data[i].begin<uchar>();
+		end_grey = bufferItem.data[i].end<uchar>();
+		//Convert to CIE L*a*b* (takes 2 steps)
+		if (maskBrightnessLimit < 255) {
+			cv::Mat img_lab;
+			cvtColor(bufferItem.data[i], img_lab, cv::COLOR_GRAY2RGB);
+			cvtColor(img_lab, img_lab, cv::COLOR_RGB2Lab);
+			//Scan through image pixels
+			cv::MatIterator_<Vec3b> it_lab, end_lab;
+			it_lab = img_lab.begin<Vec3b>();
+			end_lab = img_lab.end<Vec3b>();
+			
+			for( ; it_grey != end_grey, it_lab != end_lab; ++it_grey, ++it_lab)
+			{
+				if ((*it_lab)[0] > maskBrightnessLimit) { //Is brightness above a certain level?
+					(*it_grey) = 0;
+				}
 			}
 		}
-	}
-	
-	if (maskRectangle) {
-		int cnt = 0;
-		for( ; it_grey != end_grey; ++it_grey)
-		{
-			if (cnt % width_ > maskRectangleLeft && cnt % width_ < maskRectangleRight && cnt / width_ > maskRectangleTop && cnt / width_ < maskRectangleBottom) {
-				(*it_grey) = 0;
+		
+		if (maskRectangle) {
+			int cnt = 0;
+			for( ; it_grey != end_grey; ++it_grey)
+			{
+				if (cnt % width_ > maskRectangleLeft && cnt % width_ < maskRectangleRight && cnt / width_ > maskRectangleTop && cnt / width_ < maskRectangleBottom) {
+					(*it_grey) = 0;
+				}
+				if (cnt % width_ > 0 && cnt % width_ < width_ && cnt / width_ > 0 && cnt / width_ < 100) {
+					(*it_grey) = 0;
+				}
+				if (cnt % width_ > 0 && cnt % width_ < width_ && cnt / width_ > height_-100 && cnt / width_ < height_) {
+					(*it_grey) = 0;
+				}
+				cnt ++;
 			}
-			if (cnt % width_ > 0 && cnt % width_ < width_ && cnt / width_ > 0 && cnt / width_ < 100) {
-				(*it_grey) = 0;
-			}
-			if (cnt % width_ > 0 && cnt % width_ < width_ && cnt / width_ > height_-100 && cnt / width_ < height_) {
-				(*it_grey) = 0;
-			}
-			cnt ++;
 		}
 	}
 

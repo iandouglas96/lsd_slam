@@ -103,12 +103,12 @@ void LiveSLAMWrapper::Loop()
 				continue;
 		}
 		
-		TimestampedMat image = imageStream->getBuffer()->first();
+		TimestampedMultiMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
 
 		// process image
-		Util::displayImage("Undist image", image.data);
-		newImageCallback(image.data, image.timestamp);
+		Util::displayImage("Undist image", image.data[0]);
+		newImageCallback(image.data[0], image.timestamp);
 
 		Util::displayThreadLoop();
 

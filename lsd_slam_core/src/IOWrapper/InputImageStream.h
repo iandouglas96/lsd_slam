@@ -49,7 +49,7 @@ public:
 	/**
 	 * Gets the NotifyBuffer to which incoming images are stored.
 	 */
-	inline NotifyBuffer<TimestampedMat>* getBuffer() {return imageBuffer;};
+	inline NotifyBuffer<TimestampedMultiMat>* getBuffer() {return imageBuffer;};
 
 
 	/**
@@ -63,7 +63,7 @@ public:
 	inline int height() {return height_;}
 
 protected:
-	NotifyBuffer<TimestampedMat>* imageBuffer;
+	NotifyBuffer<TimestampedMultiMat>* imageBuffer;
 	float fx_, fy_, cx_, cy_;
 	int width_, height_;
 };
