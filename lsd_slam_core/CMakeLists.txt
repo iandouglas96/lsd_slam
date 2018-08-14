@@ -72,6 +72,7 @@ endif()
 # Set source files
 set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/DataStructures/Frame.cpp
+  ${PROJECT_SOURCE_DIR}/src/DataStructures/FrameSet.cpp
   ${PROJECT_SOURCE_DIR}/src/DataStructures/FramePoseStruct.cpp
   ${PROJECT_SOURCE_DIR}/src/DataStructures/FrameMemory.cpp
   ${PROJECT_SOURCE_DIR}/src/SlamSystem.cpp

@@ -46,6 +46,7 @@ class SE3Tracker;
 class Sim3Tracker;
 class DepthMap;
 class Frame;
+class FrameSet;
 class DataSet;
 class LiveSLAMWrapper;
 class Output3DWrapper;

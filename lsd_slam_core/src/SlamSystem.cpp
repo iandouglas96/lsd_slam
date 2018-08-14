@@ -850,7 +850,13 @@ void SlamSystem::gtDepthInit(uchar* image[NUM_CAMERAS], float* depth, double tim
 
 	currentKeyFrameMutex.lock();
 
-	currentKeyFrame.reset(new Frame(id, width, height, K, timeStamp, image[0]));
+	std::array<Frame*, NUM_CAMERAS> image_arr;
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		image_arr[i] = new Frame(id, width, height, K, timeStamp, image[i]);
+	}
+	volatile FrameSet *fs = new FrameSet(image_arr);
+
+	currentKeyFrame.reset(image_arr[0]);
 	currentKeyFrame->setDepthFromGroundTruth(depth);
 
 	map->initializeFromGTDepth(currentKeyFrame.get());
@@ -882,7 +888,13 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 
 	currentKeyFrameMutex.lock();
 
-	currentKeyFrame.reset(new Frame(id, width, height, K, timeStamp, image[0]));
+	std::array<Frame*, NUM_CAMERAS> image_arr;
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		image_arr[i] = new Frame(id, width, height, K, timeStamp, image[i]);
+	}
+	volatile FrameSet *fs = new FrameSet(image_arr);
+
+	currentKeyFrame.reset(image_arr[0]);
 	map->initializeRandomly(currentKeyFrame.get());
 	keyFrameGraph->addFrame(currentKeyFrame.get());
 
@@ -907,7 +919,14 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 
 void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp, SE3NoX tunnelOrient, float tunnelRadius){
 	// Create new frame
-	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image[0]));
+	std::array<Frame*, NUM_CAMERAS> image_arr;
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		image_arr[i] = new Frame(frameID, width, height, K, timestamp, image[i]);
+	}
+	volatile FrameSet *fs = new FrameSet(image_arr);
+
+	std::shared_ptr<Frame> trackingNewFrame(image_arr[0]);
+	
 	trackingNewFrame->setTunnelInfo(tunnelOrient, tunnelRadius);
 
 	if(!trackingIsGood)

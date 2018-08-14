@@ -25,6 +25,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include "DataStructures/FramePoseStruct.h"
 #include "DataStructures/FrameMemory.h"
+#include "DataStructures/FrameSet.h"
 #include "unordered_set"
 #include "util/settings.h"
 
@@ -35,6 +36,7 @@ namespace lsd_slam
 
 class DepthMapPixelHypothesis;
 class TrackingReference;
+class FrameSet;
 /**
  */
 
@@ -69,9 +71,14 @@ public:
 		data.tunnel_radius = radius;
 	}
 
+	inline void setFrameSet(FrameSet *fs) {
+		data.frameSet = fs;
+	}
+
 	
 
 	// Accessors
+	inline FrameSet *frameSet() const;
 	inline SE3NoX tunnelPose() const;
 	inline float tunnelRadius() const;
 	/** Returns the unique frame id. */
@@ -283,6 +290,8 @@ private:
 
 		SE3NoX tunnel_pose;
 		float tunnel_radius;
+
+		FrameSet *frameSet;
 	};
 	Data data;
 
@@ -299,6 +308,11 @@ private:
 	  * ONLY CALL THIS, if an exclusive lock on activeMutex is owned! */
 	bool minimizeInMemory();
 };
+
+inline FrameSet *Frame::frameSet() const
+{
+	return data.frameSet;
+}
 
 inline SE3NoX Frame::tunnelPose() const
 {
