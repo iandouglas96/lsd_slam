@@ -131,9 +131,9 @@ target_link_libraries(live_slam lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${O
 
 
 # build image node
-add_executable(dataset src/main_on_images.cpp)
-add_dependencies(dataset ${catkin_EXPORTED_TARGETS})
-target_link_libraries(dataset lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
+#add_executable(dataset src/main_on_images.cpp)
+#add_dependencies(dataset ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(dataset lsdslam ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
 
 # TODO add INSTALL
 

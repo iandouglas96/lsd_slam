@@ -108,7 +108,7 @@ void LiveSLAMWrapper::Loop()
 
 		// process image
 		Util::displayImage("Undist image", image.data[0]);
-		newImageCallback(image.data[0], image.timestamp);
+		newImageCallback(image.data, image.timestamp);
 
 		Util::displayThreadLoop();
 
@@ -121,21 +121,26 @@ void LiveSLAMWrapper::Loop()
 }
 
 
-void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
+void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp imgTime)
 {
 	++ imageSeqNumber;
 
-	// Convert image to grayscale, if necessary
-	cv::Mat grayImg;
-	if (img.channels() == 1)
-		grayImg = img;
-	else
-		cvtColor(img, grayImg, CV_RGB2GRAY);
-	
+	cv::Mat grayImg[NUM_CAMERAS];
+	uchar* imagePtrs[NUM_CAMERAS];
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		// Convert image to grayscale, if necessary
+		if (img[i].channels() == 1)
+			grayImg[i] = img[i];
+		else
+			cvtColor(img[i], grayImg[i], CV_RGB2GRAY);
+		
 
-	// Assert that we work with 8 bit images
-	assert(grayImg.elemSize() == 1);
-	assert(fx != 0 || fy != 0);
+		// Assert that we work with 8 bit images
+		assert(grayImg[i].elemSize() == 1);
+		assert(fx != 0 || fy != 0);
+
+		imagePtrs[i] = grayImg[i].data;
+	}
 
 
 	// need to initialize
@@ -154,12 +159,12 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 		}
 
 		//monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
-		monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+		monoOdometry->gtDepthInit(imagePtrs, depth, imgTime.toSec(), 1);
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)
 	{
-		monoOdometry->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec(),((ROSImageStreamThread*)imageStream)->getTransform(), ((ROSImageStreamThread*)imageStream)->getRadius());
+		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec(),((ROSImageStreamThread*)imageStream)->getTransform(), ((ROSImageStreamThread*)imageStream)->getRadius());
 	}
 }
 
