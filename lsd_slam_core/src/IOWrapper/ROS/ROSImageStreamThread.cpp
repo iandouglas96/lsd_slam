@@ -90,7 +90,7 @@ bool ROSImageStreamThread::depthReady()
 	return haveDepthMap;
 }
 
-float ROSImageStreamThread::getDepth(int x, int y)
+float ROSImageStreamThread::getDepth(int x, int y, int cam)
 {
     if (this->tunnel_radius > 0 && haveCalib && use_tunnel_estimator) {
 		//Deal with cropping
@@ -102,8 +102,8 @@ float ROSImageStreamThread::getDepth(int x, int y)
         
 		//ROS_INFO("%f, %f, %f", cam_pt.x, cam_pt.y, cam_pt.z);
 
-		this->unitVectorToPose("cam_top_left", cam_pt, pose);
-        return this->calcDistance(pose, this->top_left_transform);
+		this->unitVectorToPose(this->camera_names[cam], cam_pt, pose);
+        return this->calcDistance(pose, this->transforms[cam], cam);
     } else if (haveDepthMap && haveCalib) {
 		cv::Point3d vec = this->calcProjectionCameraFrame(x,y);
 		cv::Point3d vec_c = this->calcProjectionCameraFrame(width_/2,height_/2);
@@ -114,10 +114,10 @@ float ROSImageStreamThread::getDepth(int x, int y)
     return -1;
 }
 
-SE3NoX ROSImageStreamThread::getTransform()
+SE3NoX ROSImageStreamThread::getTransformFromTunnel(int cam)
 {
 	//Transform FROM tunnel frame TO robot frame
-	tf2::Transform tf_transform = this->top_left_transform;
+	tf2::Transform tf_transform = this->transforms[cam];
 	Eigen::Quaterniond quat;
 	Eigen::Vector2d trans(tf_transform.getOrigin().getY(), tf_transform.getOrigin().getZ());
 	tf2::convert(tf_transform.getRotation(), quat);
@@ -126,12 +126,21 @@ SE3NoX ROSImageStreamThread::getTransform()
 	//return SE3NoX(0,0,0,0,0);
 }
 
+SE3 ROSImageStreamThread::getTransformBetweenCameras(int from, int to)
+{
+	SE3 trans = getTransformFromTunnel(to).transform();
+	SE3 from_trans = getTransformFromTunnel(from).transform();
+
+	trans = from_trans.inverse()*trans;
+	return trans;
+}
+
 float ROSImageStreamThread::getRadius()
 {
 	return tunnel_radius;
 }
 
-float ROSImageStreamThread::calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform)
+float ROSImageStreamThread::calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform, int cam)
 {
     //Location of ROBOT, assuming TUNNEL is the global frame
     tf2::Transform robot_pose = transform*vec;
@@ -157,7 +166,7 @@ float ROSImageStreamThread::calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2:
     t += sqrt(under_sqrt);
     t /= proj(1)*proj(1) + proj(2)*proj(2);
 
-    return t*dir.dot(this->focal_plane_dir);
+    return t*dir.dot(this->focal_plane_dir[cam]);
 }
 
 //Convert from image to world coordinates IN CAMERA FRAME
@@ -454,19 +463,22 @@ void ROSImageStreamThread::radiusCb(const std_msgs::Float64::ConstPtr& msg)
 
 	//ROS_INFO("%f", this->tunnel_radius);
 
-    //Load current camera transform while we are at it
-    tf2::convert(tf_buffer->lookupTransform("center_cylinder", "cam_top_left", ros::Time(0), ros::Duration(1.0)), this->top_left_transform);       
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		//Load current camera transform while we are at it
+    	tf2::convert(tf_buffer->lookupTransform("center_cylinder", this->camera_names[i], ros::Time(0), ros::Duration(1.0)), this->transforms[i]); 
 
-	//Find the normal vector of the focal plane
-	tf2::Stamped<tf2::Transform> pose;
-	cv::Point3d cam_pt = this->calcProjectionCameraFrame((width_)/2, (height_)/2);
-    //printf("%f, %f, %f\n", cam_pt.x, cam_pt.y, cam_pt.z);
-	this->unitVectorToPose("cam_top_left", cam_pt, pose);
-	tf2::Transform robot_pose = this->top_left_transform*pose;
-    tf2::Quaternion ray_direction(1,0,0,0);
-    ray_direction = robot_pose.getRotation()*ray_direction*robot_pose.getRotation().inverse();
-    //Convert to eigen datatypes, which are much faster
-    this->focal_plane_dir = Eigen::Vector3d(ray_direction.x(), ray_direction.y(), ray_direction.z());
+		//Find the normal vector of the focal plane
+		tf2::Stamped<tf2::Transform> pose;
+		cv::Point3d cam_pt = this->calcProjectionCameraFrame((width_)/2, (height_)/2);
+		//printf("%f, %f, %f\n", cam_pt.x, cam_pt.y, cam_pt.z);
+		this->unitVectorToPose(this->camera_names[i], cam_pt, pose); 
+
+		tf2::Transform robot_pose = this->transforms[i]*pose;
+		tf2::Quaternion ray_direction(1,0,0,0);
+		ray_direction = robot_pose.getRotation()*ray_direction*robot_pose.getRotation().inverse();
+		//Convert to eigen datatypes, which are much faster
+		this->focal_plane_dir[i] = Eigen::Vector3d(ray_direction.x(), ray_direction.y(), ray_direction.z());
+	}
 
 	haveDepthMap = true;
 }

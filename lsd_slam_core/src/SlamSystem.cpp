@@ -1243,7 +1243,7 @@ void SlamSystem::testConstraint(
 int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forceParent, bool useFABMAP, float closeCandidatesTH)
 {
 	//Get current cross section pose
-	newCrossSectionPose = lidarDepth->getTransform();
+	newCrossSectionPose = lidarDepth->getTransformFromTunnel(0);
 
 	//Are we the first keyframe?
 	if(!newKeyFrame->hasTrackingParent())

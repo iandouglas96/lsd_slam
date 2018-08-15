@@ -1283,7 +1283,7 @@ void DepthMap::setLidarDepth(ROSImageStreamThread *depth)
 
 	for(int y=0;y<height;y++) {
 		for(int x=0;x<width;x++) {
-			id = 1/depth->getDepth(x,y);
+			id = 1/depth->getDepth(x,y,0);
 			DepthMapPixelHypothesis* pix = lidarDepthMap + x + y*width;
 			if (id > 0) { //valid
 				pix->idepth = id;

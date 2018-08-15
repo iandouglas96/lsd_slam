@@ -77,9 +77,10 @@ public:
 	void operator()();
 
 	//Get depth (in meters) for a particular pixel at x,y
-    float getDepth(int x, int y);
+    float getDepth(int x, int y, int cam);
 
-	SE3NoX getTransform();
+	SE3NoX getTransformFromTunnel(int cam);
+	SE3 getTransformBetweenCameras(int from, int to);
 	float getRadius();
 
 	bool depthReady();
@@ -117,16 +118,18 @@ private:
 	tf2_ros::Buffer *tf_buffer;
     tf2_ros::TransformListener *tf_listener;
 
-    tf2::Stamped<tf2::Transform> top_left_transform;
+    tf2::Stamped<tf2::Transform> transforms[NUM_CAMERAS];
 
 	ros::Subscriber radius_sub;
     float tunnel_radius;
 
-	Eigen::Vector3d focal_plane_dir;
+	Eigen::Vector3d focal_plane_dir[NUM_CAMERAS];
+
+	const std::string camera_names[NUM_CAMERAS] = {"cam_top_left", "cam_top_right", "cam_bottom_left", "cam_bottom_right"};
 
     cv::Point3d calcProjectionCameraFrame(int x, int y);
     void unitVectorToPose(const std::string& frame, cv::Point3f vec, tf2::Stamped<tf2::Transform>& trans);
-    float calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform);
+    float calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform, int cam);
 	
 	//Point Cloud processing
 	ros::Subscriber pointcloud_sub;

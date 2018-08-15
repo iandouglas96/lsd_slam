@@ -154,7 +154,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 		float depth[width*height];
 		for (int x=0; x<width; x++) {
 			for (int y=0; y<height; y++) {
-				depth[x+y*width] = ((ROSImageStreamThread*)imageStream)->getDepth(x,y);
+				depth[x+y*width] = ((ROSImageStreamThread*)imageStream)->getDepth(x,y,0);
 			}
 		}
 
@@ -164,7 +164,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 	}
 	else if(isInitialized && monoOdometry != nullptr)
 	{
-		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec(),((ROSImageStreamThread*)imageStream)->getTransform(), ((ROSImageStreamThread*)imageStream)->getRadius());
+		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec(),((ROSImageStreamThread*)imageStream)->getTransformFromTunnel(0), ((ROSImageStreamThread*)imageStream)->getRadius());
 	}
 }
 
