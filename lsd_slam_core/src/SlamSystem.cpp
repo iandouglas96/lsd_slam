@@ -921,7 +921,7 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 	// Create new frame
 	std::array<Frame*, NUM_CAMERAS> image_arr;
 	for (int i=0; i<NUM_CAMERAS; i++) {
-		image_arr[i] = new Frame(frameID, width, height, K, timestamp, image[i]);
+		image_arr[i] = new Frame((frameID*NUM_CAMERAS)+i, width, height, K, timestamp, image[i]);
 	}
 	volatile FrameSet *fs = new FrameSet(image_arr);
 

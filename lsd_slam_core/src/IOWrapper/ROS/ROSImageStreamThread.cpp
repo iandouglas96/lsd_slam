@@ -168,7 +168,7 @@ cv::Point3d ROSImageStreamThread::calcProjectionCameraFrame(int x, int y)
     hom_pt = this->cam_intrinsics.inv()*hom_pt; //put in world coordinates
 
 	//Flip around axes because camera is rotated
-    cv::Point3f direction(-hom_pt(1),hom_pt(0),hom_pt(2));
+    cv::Point3f direction(hom_pt(0),hom_pt(1),hom_pt(2));
 
     //Normalize so we have a unit vector
     direction *= 1/cv::norm(direction);
