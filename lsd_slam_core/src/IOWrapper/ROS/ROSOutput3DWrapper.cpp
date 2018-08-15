@@ -92,24 +92,29 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	fMsg.width = w;
 	fMsg.height = h;
 
+	//If we have the pointcloud, publish it
+	/*
+	if (f->hasIDepthBeenSet()) {
+		fMsg.pointcloud.resize(w*h*sizeof(InputPointDense));
 
-	fMsg.pointcloud.resize(w*h*sizeof(InputPointDense));
+		InputPointDense* pc = (InputPointDense*)fMsg.pointcloud.data();
 
-	InputPointDense* pc = (InputPointDense*)fMsg.pointcloud.data();
+		const float* idepth = f->idepth(publishLvl);
+		const float* idepthVar = f->idepthVar(publishLvl);
+		const float* color = f->image(publishLvl);
 
-	const float* idepth = f->idepth(publishLvl);
-	const float* idepthVar = f->idepthVar(publishLvl);
-	const float* color = f->image(publishLvl);
-
-	for(int idx=0;idx < w*h; idx++)
-	{
-		pc[idx].idepth = idepth[idx];
-		pc[idx].idepth_var = idepthVar[idx];
-		pc[idx].color[0] = color[idx];
-		pc[idx].color[1] = color[idx];
-		pc[idx].color[2] = color[idx];
-		pc[idx].color[3] = color[idx];
-	}
+		for(int idx=0;idx < w*h; idx++)
+		{
+			pc[idx].idepth = idepth[idx];
+			pc[idx].idepth_var = idepthVar[idx];
+			pc[idx].color[0] = color[idx];
+			pc[idx].color[1] = color[idx];
+			pc[idx].color[2] = color[idx];
+			pc[idx].color[3] = color[idx];
+		}
+	} else {
+		fMsg.pointcloud.resize(0);
+	}*/
 
 	//load image and reference data
 	fMsg.image.resize(sizeof(float)*w*h);

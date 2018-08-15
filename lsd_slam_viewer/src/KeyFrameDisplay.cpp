@@ -110,10 +110,6 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 
 	tunnel_radius = msg->tunnel_radius;
 	pose_mutex.unlock();
-	
-	//std::cout << "radius: " << msg->tunnel_radius << "\n";
-	
-	//std::cout << "rot: " << robot_pose.linear() << "\n";
 
 	// copy over image
 	if (msg->image.size() == sizeof(float)*width*height) {
@@ -124,7 +120,9 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 		setTexture(image);
 		//std::cout << "img disp...\n";
 	} else {
+		//std::cout << "rot: " << robot_pose.linear() << "\n";
 		//std::cout << "bad image size: " << msg->image.size() << "\n";
+		//std::cout << "radius: " << msg->tunnel_radius << "\n";
 	}
 
 	if(originalInput != 0)
@@ -368,7 +366,11 @@ void KeyFrameDisplay::drawCylinderSegmentHD()
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBindTexture(GL_TEXTURE_2D, texture_handle);  
+    glBindTexture(GL_TEXTURE_2D, texture_handle);
+
+	glPushMatrix();
+	Sophus::Matrix4f m = camToWorld.matrix();
+	glMultMatrixf((GLfloat*)m.data());  
     
     for (int x = 0; x <= nbSteps; ++x) {
         glBegin(GL_QUAD_STRIP);
@@ -380,21 +382,18 @@ void KeyFrameDisplay::drawCylinderSegmentHD()
             //glColor3f(1.0 - ratio, 0.2f, ratio);
             //Give sequential texture and 3d points to set up mapping equivalencies
             Eigen::Vector3f global_pt = calcProjectionCameraFrame(x_pt, y_pt);
-            //glNormal3f(0, -global_pt.y(), -global_pt.z());
             global_pt *= calcDistance(global_pt);
-            glTexCoord2f(x_pt/width, y_pt/height);
-            global_pt += camToWorld.translation();
+			glTexCoord2f(x_pt/width, y_pt/height);
             glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
             
             global_pt = calcProjectionCameraFrame(x_pt+(width/nbSteps), y_pt);
             global_pt *= calcDistance(global_pt);
-            //glNormal3f(0, -global_pt.y(), -global_pt.z());
-            glTexCoord2f((x_pt+(width/nbSteps))/width, (y_pt)/height);
-            global_pt += camToWorld.translation();
+			glTexCoord2f((x_pt+(width/nbSteps))/width, (y_pt)/height);
             glVertex3f(global_pt.x(), global_pt.y(), global_pt.z());
         }
         glEnd();
     }
+	glPopMatrix();
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 

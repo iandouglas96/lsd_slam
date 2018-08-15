@@ -164,7 +164,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 	}
 	else if(isInitialized && monoOdometry != nullptr)
 	{
-		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec(),((ROSImageStreamThread*)imageStream)->getTransformFromTunnel(0), ((ROSImageStreamThread*)imageStream)->getRadius());
+		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec());
 	}
 }
 

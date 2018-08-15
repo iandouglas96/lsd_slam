@@ -11,6 +11,7 @@ public:
 
     void setActiveFrame(int af);
     Frame *getActiveFrame();
+    std::array<Frame*, NUM_CAMERAS> *getFrameSet();
 private:
     std::array<Frame*, NUM_CAMERAS> frameSet;
     int activeFrame;

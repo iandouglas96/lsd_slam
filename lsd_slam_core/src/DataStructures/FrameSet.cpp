@@ -13,6 +13,11 @@ FrameSet::FrameSet(std::array<Frame*, NUM_CAMERAS>& fs)
     //std::cout << "Made frame set \n";
 }
 
+std::array<Frame*, NUM_CAMERAS> *FrameSet::getFrameSet()
+{
+    return &frameSet;
+}
+
 void FrameSet::setActiveFrame(int af)
 {
     activeFrame = af;

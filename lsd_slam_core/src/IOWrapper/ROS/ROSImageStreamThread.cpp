@@ -128,11 +128,18 @@ SE3NoX ROSImageStreamThread::getTransformFromTunnel(int cam)
 
 SE3 ROSImageStreamThread::getTransformBetweenCameras(int from, int to)
 {
-	SE3 trans = getTransformFromTunnel(to).transform();
-	SE3 from_trans = getTransformFromTunnel(from).transform();
+	tf2::Stamped<tf2::Transform> tf_transform;
+	tf2::convert(tf_buffer->lookupTransform(this->camera_names[to], this->camera_names[from], ros::Time(0), ros::Duration(1.0)), tf_transform); 
 
-	trans = from_trans.inverse()*trans;
-	return trans;
+	Eigen::Quaterniond quat;
+	Eigen::Vector3d trans(tf_transform.getOrigin().getX(), tf_transform.getOrigin().getY(), tf_transform.getOrigin().getZ());
+	tf2::convert(tf_transform.getRotation(), quat);
+
+	SE3 sophus_trans;
+	sophus_trans.setQuaternion(quat);
+	sophus_trans.translation() = trans;
+
+	return sophus_trans;
 }
 
 float ROSImageStreamThread::getRadius()
