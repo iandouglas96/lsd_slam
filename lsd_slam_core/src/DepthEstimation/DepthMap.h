@@ -84,7 +84,7 @@ public:
 
 	void setFromExistingKF(Frame* kf);
 
-	void setLidarDepth(ROSImageStreamThread* depth);
+	void setLidarDepth(ROSImageStreamThread* depth, int currentCam);
 
 	void addTimingSample();
 	float msUpdate, msCreate, msFinalize;

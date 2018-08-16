@@ -1275,7 +1275,7 @@ void DepthMap::invalidate()
 	activeKeyFramelock.unlock();
 }
 
-void DepthMap::setLidarDepth(ROSImageStreamThread *depth)
+void DepthMap::setLidarDepth(ROSImageStreamThread *depth, int currentCam)
 {
 	//std::cout << "Got LIDAR data\n";
 
@@ -1283,7 +1283,7 @@ void DepthMap::setLidarDepth(ROSImageStreamThread *depth)
 
 	for(int y=0;y<height;y++) {
 		for(int x=0;x<width;x++) {
-			id = 1/depth->getDepth(x,y,0);
+			id = 1/depth->getDepth(x,y,currentCam);
 			DepthMapPixelHypothesis* pix = lidarDepthMap + x + y*width;
 			if (id > 0) { //valid
 				pix->idepth = id;

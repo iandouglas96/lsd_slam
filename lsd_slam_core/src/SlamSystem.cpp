@@ -489,7 +489,7 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 
 	// propagate & make new.
 	printf("new keyframe\n");
-	map->setLidarDepth(lidarDepth);
+	map->setLidarDepth(lidarDepth, currentCamera);
 	map->createKeyFrame(newKeyframeCandidate.get());
 	printf("keyframe created\n");
 
@@ -1099,7 +1099,11 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 }
 
 void SlamSystem::switchCameras(int newCam) {
-
+	finishCurrentKeyframe();
+	currentCamera = newCam;
+	std::shared_ptr<Frame> newKeyFrame(currentKeyFrame.get()->frameSet()->getFrameSet()->at(currentCamera));
+	keyFrameGraph->addFrame(newKeyFrame.get());
+	createNewCurrentKeyframe(newKeyFrame);
 }
 
 float SlamSystem::tryTrackSE3Depth(

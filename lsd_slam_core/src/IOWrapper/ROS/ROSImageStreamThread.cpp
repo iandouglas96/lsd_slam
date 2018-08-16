@@ -77,7 +77,7 @@ ROSImageStreamThread::ROSImageStreamThread()
 	// imagebuffer
 	imageBuffer = new NotifyBuffer<TimestampedMultiMat>(8);
 	for (int i=0; i<NUM_CAMERAS; i++) {
-		undistorter[0] = 0;
+		undistorter[i] = 0;
 	}
 	lastSEQ = 0;
 
