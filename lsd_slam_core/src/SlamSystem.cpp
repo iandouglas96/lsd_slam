@@ -935,6 +935,9 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 }
 
 void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp){
+	cv::Mat imagecv(cv::Size(width, height), CV_8UC1, image[currentCamera], cv::Mat::AUTO_STEP);
+	Util::displayImage("current tracking image", imagecv);
+
 	// Create new frame
 	std::array<Frame*, NUM_CAMERAS> image_arr;
 	image_arr[currentCamera] = new Frame((frameID*NUM_CAMERAS)+currentCamera, width, height, K, timestamp, image[currentCamera]);

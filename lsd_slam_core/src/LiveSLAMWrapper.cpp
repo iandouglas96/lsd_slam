@@ -64,8 +64,8 @@ LiveSLAMWrapper::LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper*
 
 
 	// make Odometry
-	currentCamera = 0;
-	monoOdometry = new SlamSystem(width, height, K_sophus, doSlam, currentCamera);
+	initialCamera = 0;
+	monoOdometry = new SlamSystem(width, height, K_sophus, doSlam, initialCamera);
 
 	monoOdometry->setVisualization(outputWrapper);
 	monoOdometry->setLidarDepth(((ROSImageStreamThread*)imageStream));
@@ -108,7 +108,6 @@ void LiveSLAMWrapper::Loop()
 		imageStream->getBuffer()->popFront();
 
 		// process image
-		Util::displayImage("current tracking image", image.data[currentCamera]);
 		newImageCallback(image.data, image.timestamp);
 
 		Util::displayThreadLoop();
@@ -155,7 +154,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 		float depth[width*height];
 		for (int x=0; x<width; x++) {
 			for (int y=0; y<height; y++) {
-				depth[x+y*width] = ((ROSImageStreamThread*)imageStream)->getDepth(x,y,currentCamera);
+				depth[x+y*width] = ((ROSImageStreamThread*)imageStream)->getDepth(x,y,initialCamera);
 			}
 		}
 		//monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
@@ -164,12 +163,6 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 	}
 	else if(isInitialized && monoOdometry != nullptr)
 	{
-		//FOR TESTING ONLY
-		if (imageSeqNumber > 50 && currentCamera == 0) {
-			std::cout << "Switiching Cameras!\n";
-			currentCamera = 1;
-			monoOdometry->switchCameras(currentCamera);
-		}
 		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec());
 	}
 }
