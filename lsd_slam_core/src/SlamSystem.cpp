@@ -49,7 +49,7 @@
 using namespace lsd_slam;
 
 
-SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
+SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM, int initialCam)
 : SLAMEnabled(enableSLAM), relocalizer(w,h,K)
 {
 	if(w%16 != 0 || h%16!=0)
@@ -75,6 +75,8 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 	
 	newConstraintAdded = false;
 	haveUnmergedOptimizationOffset = false;
+
+	currentCamera = initialCam;
 
 
 	tracker = new SE3Tracker(w,h,K);
@@ -856,16 +858,17 @@ void SlamSystem::gtDepthInit(uchar* image[NUM_CAMERAS], float* depth, double tim
 	currentKeyFrameMutex.lock();
 
 	std::array<Frame*, NUM_CAMERAS> image_arr;
+	image_arr[currentCamera] = new Frame((id*NUM_CAMERAS)+currentCamera, width, height, K, timeStamp, image[currentCamera]);
 	for (int i=0; i<NUM_CAMERAS; i++) {
-		image_arr[i] = new Frame((id*NUM_CAMERAS)+i, width, height, K, timeStamp, image[i]);
-		if (i != 0) {
-			image_arr[i]->pose->trackingParent = image_arr[0]->pose;
-			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(0, i);
+		if (i != currentCamera) {
+			image_arr[i] = new Frame((id*NUM_CAMERAS)+i, width, height, K, timeStamp, image[i]);
+			image_arr[i]->pose->trackingParent = image_arr[currentCamera]->pose;
+			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
 		}
 	}
 	volatile FrameSet *fs = new FrameSet(image_arr);
 
-	currentKeyFrame.reset(image_arr[0]);
+	currentKeyFrame.reset(image_arr[currentCamera]);
 	currentKeyFrame->setDepthFromGroundTruth(depth);
 
 	map->initializeFromGTDepth(currentKeyFrame.get());
@@ -898,16 +901,17 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 	currentKeyFrameMutex.lock();
 
 	std::array<Frame*, NUM_CAMERAS> image_arr;
+	image_arr[currentCamera] = new Frame((id*NUM_CAMERAS)+currentCamera, width, height, K, timeStamp, image[currentCamera]);
 	for (int i=0; i<NUM_CAMERAS; i++) {
-		image_arr[i] = new Frame((id*NUM_CAMERAS)+i, width, height, K, timeStamp, image[i]);
-		if (i != 0) {
-			image_arr[i]->pose->trackingParent = image_arr[0]->pose;
-			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(0, i);
+		if (i != currentCamera) {
+			image_arr[i] = new Frame((id*NUM_CAMERAS)+i, width, height, K, timeStamp, image[i]);
+			image_arr[i]->pose->trackingParent = image_arr[currentCamera]->pose;
+			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
 		}
 	}
 	volatile FrameSet *fs = new FrameSet(image_arr);
 
-	currentKeyFrame.reset(image_arr[0]);
+	currentKeyFrame.reset(image_arr[currentCamera]);
 	map->initializeRandomly(currentKeyFrame.get());
 	keyFrameGraph->addFrame(currentKeyFrame.get());
 
@@ -933,18 +937,19 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp){
 	// Create new frame
 	std::array<Frame*, NUM_CAMERAS> image_arr;
+	image_arr[currentCamera] = new Frame((frameID*NUM_CAMERAS)+currentCamera, width, height, K, timestamp, image[currentCamera]);
 	for (int i=0; i<NUM_CAMERAS; i++) {
-		image_arr[i] = new Frame((frameID*NUM_CAMERAS)+i, width, height, K, timestamp, image[i]);
-		if (i != 0) {
-			image_arr[i]->pose->trackingParent = image_arr[0]->pose;
-			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(0, i);
+		if (i != currentCamera) {
+			image_arr[i] = new Frame((frameID*NUM_CAMERAS)+i, width, height, K, timestamp, image[i]);
+			image_arr[i]->pose->trackingParent = image_arr[currentCamera]->pose;
+			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
 		}
 		SE3NoX tunnel_pose = lidarDepth->getTransformFromTunnel(i);
 		image_arr[i]->setTunnelInfo(tunnel_pose, lidarDepth->getRadius());
 	}
 	volatile FrameSet *fs = new FrameSet(image_arr);
 
-	std::shared_ptr<Frame> trackingNewFrame(image_arr[0]);
+	std::shared_ptr<Frame> trackingNewFrame(image_arr[currentCamera]);
 
 	if(!trackingIsGood)
 	{
@@ -1091,6 +1096,10 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 		}
 		lock.unlock();
 	}
+}
+
+void SlamSystem::switchCameras(int newCam) {
+
 }
 
 float SlamSystem::tryTrackSE3Depth(
@@ -1260,7 +1269,7 @@ void SlamSystem::testConstraint(
 int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forceParent, bool useFABMAP, float closeCandidatesTH)
 {
 	//Get current cross section pose
-	newCrossSectionPose = lidarDepth->getTransformFromTunnel(0);
+	newCrossSectionPose = lidarDepth->getTransformFromTunnel(currentCamera);
 
 	//Are we the first keyframe?
 	if(!newKeyFrame->hasTrackingParent())

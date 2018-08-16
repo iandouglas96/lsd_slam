@@ -72,7 +72,7 @@ public:
 	bool trackingIsGood;
 
 
-	SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM = true);
+	SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM = true, int initialCam = 0);
 	SlamSystem(const SlamSystem&) = delete;
 	SlamSystem& operator=(const SlamSystem&) = delete;
 	~SlamSystem();
@@ -87,6 +87,8 @@ public:
 	// returns camToWord transformation of the tracked frame.
 	// frameID needs to be monotonically increasing.
 	void trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp);
+
+	void switchCameras(int newCam);
 
 	// finalizes the system, i.e. blocks and does all remaining loop-closures etc.
 	void finalize();
@@ -130,7 +132,7 @@ private:
 	// ============= EXCLUSIVELY TRACKING THREAD (+ init) ===============
 	TrackingReference* trackingReference; // tracking reference for current keyframe. only used by tracking.
 	SE3Tracker* tracker;
-
+	int currentCamera;
 
 
 	// ============= EXCLUSIVELY MAPPING THREAD (+ init) =============

@@ -82,6 +82,7 @@ private:
 	// initialization stuff
 	bool isInitialized;
 
+	int currentCamera;
 
 
 	// monoOdometry

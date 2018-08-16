@@ -146,7 +146,7 @@
 
   <!-- LSD SLAM system -->
   <!-- Yes, the bottom camera names are backwards for this dataset -->
-  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
+  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" launch-prefix="gdb -ex run --args" output="screen">
     <remap from="top_left_image" to="/camera/top_left_image_debayer"/>
     <remap from="top_right_image" to="/camera/top_right_image_debayer"/>
     <remap from="bottom_left_image" to="/camera/bottom_right_image_debayer"/>
