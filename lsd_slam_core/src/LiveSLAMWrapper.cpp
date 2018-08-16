@@ -107,7 +107,7 @@ void LiveSLAMWrapper::Loop()
 		imageStream->getBuffer()->popFront();
 
 		// process image
-		Util::displayImage("Undist image", image.data[0]);
+		Util::displayImage("top left", image.data[0]);
 		newImageCallback(image.data, image.timestamp);
 
 		Util::displayThreadLoop();

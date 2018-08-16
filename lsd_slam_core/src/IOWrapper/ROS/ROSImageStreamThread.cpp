@@ -59,7 +59,7 @@ ROSImageStreamThread::ROSImageStreamThread()
 	bottom_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_left_image"), 1);
 	bottom_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_right_image"), 1);
 
-	image_sub = new message_filters::Synchronizer<SynchPolicy>(SynchPolicy(1),
+	image_sub = new message_filters::Synchronizer<SynchPolicy>(SynchPolicy(5),
 		*top_left_sub, *top_right_sub, *bottom_left_sub, *bottom_right_sub);
 
 	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));

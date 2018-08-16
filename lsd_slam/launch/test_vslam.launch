@@ -89,10 +89,12 @@
   </node>
 
   <!-- Broadcast static transform b/w each camera and lidar -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_left_tf" args="0.0362 0.0932 0.06 1.2 0.785 0 robot_ukf cam_top_left" />
-  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_right_tf" args="-0.0362 -0.0932 0.06 -1.94 0.785 0 robot_ukf cam_top_right" />
-  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_bottom_left_tf" args="0.0362 0.0932 -0.06 -1.94 -2.36 0 robot_ukf cam_bottom_left" />
-  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_bottom_right_tf" args="-0.0362 -0.0932 -0.06 1.2 -2.36 0 robot_ukf cam_bottom_right" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_center_tf" args="0 0 0 -0.5 0 0 robot_ukf cam_center" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_left_tf" args="0 0.1 0.06 1.57 0.785 0 cam_center cam_top_left" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_right_tf" args="0 -0.1 0.06 -1.57 0.785 0 cam_center cam_top_right" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_bottom_left_tf" args="0 0.1 -0.06 -1.57 -2.36 0 cam_center cam_bottom_left" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_bottom_right_tf" args="0 -0.1 -0.06 1.57 -2.36 0 cam_center cam_bottom_right" />
 
   <!-- Decompress the image -->
   <node name="republish_top_left" pkg="image_transport" type="republish" args="compressed">
@@ -143,11 +145,12 @@
   </node>
 
   <!-- LSD SLAM system -->
+  <!-- Yes, the bottom camera names are backwards for this dataset -->
   <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
     <remap from="top_left_image" to="/camera/top_left_image_debayer"/>
     <remap from="top_right_image" to="/camera/top_right_image_debayer"/>
-    <remap from="bottom_left_image" to="/camera/bottom_left_image_debayer"/>
-    <remap from="bottom_right_image" to="/camera/bottom_right_image_debayer"/>
+    <remap from="bottom_left_image" to="/camera/bottom_right_image_debayer"/>
+    <remap from="bottom_right_image" to="/camera/bottom_left_image_debayer"/>
     <remap from="local_tunnel_radius" to="/test_icra2017_video/local_tunnel_radius"/>
     <param name="calib" value="/home/ian/.ros/camera_info/camera_intrinsics_set.cfg"/>
     <param name="use_tunnel_estimator" value="true"/>
