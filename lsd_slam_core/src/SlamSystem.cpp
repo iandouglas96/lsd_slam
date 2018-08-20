@@ -428,7 +428,7 @@ void SlamSystem::finishCurrentKeyframe()
 			currentKeyFrame->idxInKeyframes = keyFrameGraph->keyframesAll.size();
 			std::cout << "adding new keyframe with id: " << currentKeyFrame.get()->id() << "\n";
 			for (int i=0; i<NUM_CAMERAS; i++) {
-				keyFrameGraph->keyframesAll.push_back(currentKeyFrame.get()->frameSet()->getFrameSet()->at(i));
+				keyFrameGraph->keyframesAll.push_back(currentKeyFrame->frameSet()->getFrame(currentCamera).get());
 			}
 			keyFrameGraph->totalPoints += currentKeyFrame->numPoints;
 			keyFrameGraph->totalVertices ++;
@@ -443,8 +443,8 @@ void SlamSystem::finishCurrentKeyframe()
 
 	if(outputWrapper!= 0)
 		for (int i=0; i<NUM_CAMERAS; i++) {
-			//std::cout << "publishing: " << i << "\n";
-			outputWrapper->publishKeyframe(currentKeyFrame.get()->frameSet()->getFrameSet()->at(i));
+			//std::cout << "publishing int: " << i << "\n";
+			outputWrapper->publishKeyframe(currentKeyFrame->frameSet()->getFrame(i).get());
 		}
 }
 
@@ -488,7 +488,10 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	{
 		// add NEW keyframe to id-lookup
 		keyFrameGraph->idToKeyFrameMutex.lock();
-		keyFrameGraph->idToKeyFrame.insert(std::make_pair(newKeyframeCandidate->id(), newKeyframeCandidate));
+		for (int i=0; i<NUM_CAMERAS; i++) {
+			std::shared_ptr<Frame> frame = newKeyframeCandidate->frameSet()->getFrame(i);
+			keyFrameGraph->idToKeyFrame.insert(std::make_pair(frame->id(), frame));
+		}
 		keyFrameGraph->idToKeyFrameMutex.unlock();
 	}
 
@@ -512,6 +515,9 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 
 	currentKeyFrameMutex.lock();
 	currentKeyFrame = newKeyframeCandidate;
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		currentKeyFrameImageArr[i] = latestTrackedImageArr[i];
+	}
 	currentKeyFrameMutex.unlock();
 }
 void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
@@ -865,18 +871,20 @@ void SlamSystem::gtDepthInit(uchar* image[NUM_CAMERAS], float* depth, double tim
 
 	currentKeyFrameMutex.lock();
 
-	std::array<Frame*, NUM_CAMERAS> image_arr;
-	image_arr[currentCamera] = new Frame((id*NUM_CAMERAS)+currentCamera, width, height, K, timeStamp, image[currentCamera]);
+	currentKeyFrameImageArr[currentCamera] = std::shared_ptr<Frame>(new Frame((id*NUM_CAMERAS)+currentCamera, width,
+																 height, K, timeStamp, image[currentCamera]));
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		if (i != currentCamera) {
-			image_arr[i] = new Frame((id*NUM_CAMERAS)+i, width, height, K, timeStamp, image[i]);
-			image_arr[i]->pose->trackingParent = image_arr[currentCamera]->pose;
-			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
+			currentKeyFrameImageArr[i] = std::shared_ptr<Frame>(new Frame((id*NUM_CAMERAS)+i, width, height, K, timeStamp, image[i]));
+			currentKeyFrameImageArr[i]->pose->trackingParent = currentKeyFrameImageArr[currentCamera]->pose;
+			currentKeyFrameImageArr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
 		}
 	}
-	volatile FrameSet *fs = new FrameSet(image_arr);
 
-	currentKeyFrame.reset(image_arr[currentCamera]);
+	std::shared_ptr<FrameSet> fs(new FrameSet(currentKeyFrameImageArr));
+
+	currentKeyFrame = currentKeyFrameImageArr[currentCamera];
+	currentKeyFrame->setFrameSet(fs);
 	currentKeyFrame->setDepthFromGroundTruth(depth);
 
 	map->initializeFromGTDepth(currentKeyFrame.get());
@@ -908,18 +916,20 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 
 	currentKeyFrameMutex.lock();
 
-	std::array<Frame*, NUM_CAMERAS> image_arr;
-	image_arr[currentCamera] = new Frame((id*NUM_CAMERAS)+currentCamera, width, height, K, timeStamp, image[currentCamera]);
+	currentKeyFrameImageArr[currentCamera] = std::shared_ptr<Frame>(new Frame((id*NUM_CAMERAS)+currentCamera, width,
+																 height, K, timeStamp, image[currentCamera]));
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		if (i != currentCamera) {
-			image_arr[i] = new Frame((id*NUM_CAMERAS)+i, width, height, K, timeStamp, image[i]);
-			image_arr[i]->pose->trackingParent = image_arr[currentCamera]->pose;
-			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
+			currentKeyFrameImageArr[i] = std::shared_ptr<Frame>(new Frame((id*NUM_CAMERAS)+i, width, height, K, timeStamp, image[i]));
+			currentKeyFrameImageArr[i]->pose->trackingParent = currentKeyFrameImageArr[currentCamera]->pose;
+			currentKeyFrameImageArr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
 		}
 	}
-	volatile FrameSet *fs = new FrameSet(image_arr);
 
-	currentKeyFrame.reset(image_arr[currentCamera]);
+	std::shared_ptr<FrameSet> fs(new FrameSet(currentKeyFrameImageArr));
+
+	currentKeyFrame = currentKeyFrameImageArr[currentCamera];
+	currentKeyFrame->setFrameSet(fs);
 	map->initializeRandomly(currentKeyFrame.get());
 	keyFrameGraph->addFrame(currentKeyFrame.get());
 
@@ -949,20 +959,25 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 	Util::displayImage("current tracking image", imagecv);
 
 	// Create new frame
-	std::array<Frame*, NUM_CAMERAS> image_arr;
-	image_arr[currentCamera] = new Frame((frameID*NUM_CAMERAS)+currentCamera, width, height, K, timestamp, image[currentCamera]);
+	std::array<std::shared_ptr<Frame>, NUM_CAMERAS> image_arr;
+	image_arr[currentCamera] = std::shared_ptr<Frame>(new Frame((frameID*NUM_CAMERAS)+currentCamera, width,
+																 height, K, timestamp, image[currentCamera]));
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		if (i != currentCamera) {
-			image_arr[i] = new Frame((frameID*NUM_CAMERAS)+i, width, height, K, timestamp, image[i]);
+			image_arr[i] = std::shared_ptr<Frame>(new Frame((frameID*NUM_CAMERAS)+i, width, height, K, timestamp, image[i]));
 			image_arr[i]->pose->trackingParent = image_arr[currentCamera]->pose;
 			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
 		}
 		SE3NoX tunnel_pose = lidarDepth->getTransformFromTunnel(i);
 		image_arr[i]->setTunnelInfo(tunnel_pose, lidarDepth->getRadius());
 	}
-	volatile FrameSet *fs = new FrameSet(image_arr);
+	
+	std::shared_ptr<FrameSet> fs(new FrameSet(image_arr));
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		image_arr[i]->setFrameSet(fs);
+	}
 
-	std::shared_ptr<Frame> trackingNewFrame(image_arr[currentCamera]);
+	std::shared_ptr<Frame> trackingNewFrame = image_arr[currentCamera];
 
 	if(!trackingIsGood)
 	{
@@ -1065,9 +1080,11 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 		outputWrapper->publishTrackedFrame(trackingNewFrame.get());
 	}
 
-
 	// Keyframe selection
 	latestTrackedFrame = trackingNewFrame;
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		latestTrackedImageArr[i] = image_arr[i];
+	}
 
 	unmappedTrackedFramesMutex.lock();
 	if(unmappedTrackedFrames.size() < 50 || (unmappedTrackedFrames.size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
@@ -1128,14 +1145,17 @@ void SlamSystem::switchCameras(int newCam)
 	boost::unique_lock<boost::shared_mutex> lock(currentCameraMutex);
 
 	currentCamera = newCam;
-	std::shared_ptr<Frame> newKeyFrame(currentKeyFrame->frameSet()->getFrameSet()->at(currentCamera));
+	std::shared_ptr<Frame> newKeyFrame = currentKeyFrame->frameSet()->getFrame(currentCamera);
 	keyFrameGraph->addFrame(newKeyFrame.get());
 
 	if(SLAMEnabled)
 	{
 		// add NEW keyframe to id-lookup
 		keyFrameGraph->idToKeyFrameMutex.lock();
-		keyFrameGraph->idToKeyFrame.insert(std::make_pair(newKeyFrame->id(), newKeyFrame));
+		for (int i=0; i<NUM_CAMERAS; i++) {
+			std::shared_ptr<Frame> frame = newKeyFrame->frameSet()->getFrame(i);
+			keyFrameGraph->idToKeyFrame.insert(std::make_pair(frame->id(), frame));
+		}
 		keyFrameGraph->idToKeyFrameMutex.unlock();
 	}
 

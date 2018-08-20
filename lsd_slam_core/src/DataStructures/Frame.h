@@ -71,7 +71,7 @@ public:
 		data.tunnel_radius = radius;
 	}
 
-	inline void setFrameSet(FrameSet *fs) {
+	inline void setFrameSet(std::shared_ptr<FrameSet> fs) {
 		data.frameSet = fs;
 	}
 
@@ -291,7 +291,7 @@ private:
 		SE3NoX tunnel_pose;
 		float tunnel_radius;
 
-		FrameSet *frameSet;
+		std::shared_ptr<FrameSet> frameSet;
 	};
 	Data data;
 
@@ -311,7 +311,7 @@ private:
 
 inline FrameSet *Frame::frameSet() const
 {
-	return data.frameSet;
+	return data.frameSet.get();
 }
 
 inline SE3NoX Frame::tunnelPose() const

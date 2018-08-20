@@ -286,7 +286,7 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 	
 	data.idepthValid[0] = true;
 	data.idepthVarValid[0] = true;
-// 	data.refIDValid[0] = true;
+	// 	data.refIDValid[0] = true;
 	// Invalidate higher levels, they need to be updated with the new data
 	release(IDEPTH | IDEPTH_VAR, true, true);
 	data.hasIDepthBeenSet = true;

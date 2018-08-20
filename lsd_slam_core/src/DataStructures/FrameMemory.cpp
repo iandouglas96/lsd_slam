@@ -142,7 +142,7 @@ void FrameMemory::deactivateFrame(Frame* frame)
 	activeFrames.remove(frame);
 
 	while(!frame->minimizeInMemory())
-		printf("cannot deactivateFrame frame %d, as some acvite-lock is lingering. May cause deadlock!\n", frame->id());	// do it in a loop, to make shure it is really, really deactivated.
+		printf("cannot deactivate frame %d, as some active-lock is lingering. May cause deadlock!\n", frame->id());	// do it in a loop, to make shure it is really, really deactivated.
 
 	frame->isActive = false;
 }

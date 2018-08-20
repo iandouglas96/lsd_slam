@@ -3,17 +3,16 @@
 
 namespace lsd_slam {
 
-FrameSet::FrameSet(std::array<Frame*, NUM_CAMERAS>& fs)
+FrameSet::FrameSet(std::array<std::shared_ptr<Frame>, NUM_CAMERAS>& fs)
 {
     for (int i=0; i<NUM_CAMERAS; i++) {
         frameSet[i] = fs[i];
-        frameSet[i]->setFrameSet(this);
     }
     activeFrame = 0;
     //std::cout << "Made frame set \n";
 }
 
-std::array<Frame*, NUM_CAMERAS> *FrameSet::getFrameSet()
+std::array<std::weak_ptr<Frame>, NUM_CAMERAS> *FrameSet::getFrameSet()
 {
     return &frameSet;
 }
@@ -24,7 +23,7 @@ int FrameSet::getBestCamera()
 	int bestCam = 0;
 	int maxMappablePixels = 0;
 	for (int i = 0; i<NUM_CAMERAS; i++) {
-		Frame *f = frameSet[i];
+        std::shared_ptr<Frame> f = frameSet[i].lock();
 		f->maxGradients(0);
 
         if (printInterestLevel) {
@@ -45,9 +44,9 @@ void FrameSet::setActiveFrame(int af)
     activeFrame = af;
 }
 
-Frame *FrameSet::getActiveFrame()
+std::shared_ptr<Frame> FrameSet::getFrame(int index)
 {
-    return frameSet[activeFrame];
+    return frameSet[index].lock();
 }
 
 }

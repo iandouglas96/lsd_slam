@@ -185,13 +185,12 @@ private:
 	// Mapping: if (create) use candidate, reset create.
 	// => no locking required.
 	std::shared_ptr<Frame> latestTrackedFrame;
+	std::array<std::shared_ptr<Frame>, NUM_CAMERAS> latestTrackedImageArr, currentKeyFrameImageArr;
 	bool createNewKeyFrame;
 
 	SE3NoX newCrossSectionPose, oldCrossSectionPose;
 	bool haveCrossSectionPoses;
 	Frame* firstKeyFrame;
-
-
 
 	// PUSHED in tracking, READ & CLEARED in mapping
 	std::deque< std::shared_ptr<Frame> > unmappedTrackedFrames;
