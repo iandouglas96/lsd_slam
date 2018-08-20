@@ -161,7 +161,7 @@ private:
 	bool doFinalOptimization;
 	float lastTrackingClosenessScore;
 
-	boost::mutex currentCameraMutex;
+	boost::shared_mutex currentCameraMutex;
 	int currentCamera, nextCamera;
 
 	// for sequential operation. Set in Mapping, read in Tracking.

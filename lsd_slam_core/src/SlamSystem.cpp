@@ -289,7 +289,7 @@ void SlamSystem::constraintSearchThreadLoop()
 			if(keyFrameGraph->keyframesForRetrack.size() > 10)
 			{
 				std::deque< Frame* >::iterator toReTrack = keyFrameGraph->keyframesForRetrack.begin() + (rand() % (keyFrameGraph->keyframesForRetrack.size()/3));
-				currentCameraMutex.lock();
+				boost::shared_lock<boost::shared_mutex> cam_lock(currentCameraMutex);
 				Frame* toReTrackFrame = *toReTrack;
 
 				keyFrameGraph->keyframesForRetrack.erase(toReTrack);
@@ -298,7 +298,8 @@ void SlamSystem::constraintSearchThreadLoop()
 				keyFrameGraph->keyframesForRetrackMutex.unlock();
 
 				int found = findConstraintsForNewKeyFrames(toReTrackFrame, false, false, 2.0);
-				currentCameraMutex.unlock();
+				cam_lock.unlock();
+				
 				if(found == 0)
 					failedToRetrack++;
 				else
@@ -322,7 +323,7 @@ void SlamSystem::constraintSearchThreadLoop()
 		}
 		else
 		{
-			currentCameraMutex.lock();
+			boost::shared_lock<boost::shared_mutex> cam_lock(currentCameraMutex);
 			Frame* newKF = newKeyFrames.front();
 			newKeyFrames.pop_front();
 			lock.unlock();
@@ -331,7 +332,7 @@ void SlamSystem::constraintSearchThreadLoop()
 			gettimeofday(&tv_start, NULL);
 
 			findConstraintsForNewKeyFrames(newKF, true, true, 1.0);
-			currentCameraMutex.unlock();
+			cam_lock.unlock();
 			failedToRetrack=0;
 			gettimeofday(&tv_end, NULL);
 			msFindConstraintsItaration = 0.9*msFindConstraintsItaration + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
@@ -807,11 +808,14 @@ bool SlamSystem::doMappingIteration()
 		}
 
 
-		if (createNewKeyFrame)
+		if (createNewKeyFrame || currentCamera != nextCamera)
 		{
 			finishCurrentKeyframe();
 			changeKeyframe(false, true, 1.0f);
 
+			if (currentCamera != nextCamera) {
+				switchCameras(nextCamera);
+			}
 
 			if (displayDepthMap || depthMapScreenshotFlag)
 				debugDisplayDepthMap();
@@ -824,10 +828,6 @@ bool SlamSystem::doMappingIteration()
 				debugDisplayDepthMap();
 			if(!didSomething)
 				return false;
-		}
-
-		if (currentCamera != nextCamera) {
-			switchCameras(nextCamera);
 		}
 
 		return true;
@@ -943,6 +943,8 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 }
 
 void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp){
+	boost::shared_lock<boost::shared_mutex> lock(currentCameraMutex);
+
 	cv::Mat imagecv(cv::Size(width, height), CV_8UC1, image[currentCamera], cv::Mat::AUTO_STEP);
 	Util::displayImage("current tracking image", imagecv);
 
@@ -983,6 +985,7 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 
 	FramePoseStruct* trackingReferencePose = trackingReference->keyframe->pose;
 	currentKeyFrameMutex.unlock();
+	lock.unlock();
 
 	// DO TRACKING & Show tracking result.
 	if(enablePrintDebugInfo && printThreadingInfo)
@@ -1121,7 +1124,9 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 void SlamSystem::switchCameras(int newCam) 
 {
 	finishCurrentKeyframe();
-	currentCameraMutex.lock();
+	//Get exclusive lock
+	boost::unique_lock<boost::shared_mutex> lock(currentCameraMutex);
+
 	currentCamera = newCam;
 	std::shared_ptr<Frame> newKeyFrame(currentKeyFrame->frameSet()->getFrameSet()->at(currentCamera));
 	keyFrameGraph->addFrame(newKeyFrame.get());
@@ -1134,6 +1139,7 @@ void SlamSystem::switchCameras(int newCam)
 		keyFrameGraph->idToKeyFrameMutex.unlock();
 	}
 
+	//Set depth from current local tunnel model
 	float depth[width*height];
 	for (int x=0; x<width; x++) {
 		for (int y=0; y<height; y++) {
@@ -1149,7 +1155,7 @@ void SlamSystem::switchCameras(int newCam)
 	currentKeyFrame = newKeyFrame;
 	currentKeyFrameMutex.unlock();
 
-	currentCameraMutex.unlock();
+	lock.unlock();
 	createNewKeyFrame = false;
 }
 
