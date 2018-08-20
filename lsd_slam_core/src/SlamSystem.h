@@ -88,8 +88,6 @@ public:
 	// frameID needs to be monotonically increasing.
 	void trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp);
 
-	void switchCameras(int newCam);
-
 	// finalizes the system, i.e. blocks and does all remaining loop-closures etc.
 	void finalize();
 
@@ -164,7 +162,7 @@ private:
 	float lastTrackingClosenessScore;
 
 	boost::mutex currentCameraMutex;
-	int currentCamera;
+	int currentCamera, nextCamera;
 
 	// for sequential operation. Set in Mapping, read in Tracking.
 	boost::condition_variable  newFrameMappedSignal;
@@ -259,6 +257,8 @@ private:
 
 
 	bool updateKeyframe();
+
+	void switchCameras(int newCam);
 
 	void addTimingSamples();
 

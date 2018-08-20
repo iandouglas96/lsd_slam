@@ -77,7 +77,7 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM, int ini
 	haveUnmergedOptimizationOffset = false;
 
 	currentCamera = initialCam;
-
+	nextCamera = currentCamera;
 
 	tracker = new SE3Tracker(w,h,K);
 	// Do not use more than 4 levels for odometry tracking
@@ -826,6 +826,10 @@ bool SlamSystem::doMappingIteration()
 				return false;
 		}
 
+		if (currentCamera != nextCamera) {
+			switchCameras(nextCamera);
+		}
+
 		return true;
 	}
 	else
@@ -1080,13 +1084,6 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 		lock.unlock();
 	}
 
-	if (printInterestLevel) {
-		std::cout << "interest level: " << tracker->lastGoodCount << "\n";
-	}
-	if (tracker->lastGoodCount < cameraSwitchInterestLevel && currentCamera != 2) {
-		switchCameras(2);
-	}
-
 	if (!my_createNewKeyframe && currentKeyFrame->numMappedOnThisTotal > MIN_NUM_MAPPED)
 	{
 		Sophus::Vector3d dist = newRefToFrame_poseUpdate.translation() * currentKeyFrame->meanIdepth;
@@ -1110,18 +1107,50 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 
 		}
 	}
+
+	if (printInterestLevel) {
+		std::cout << "interest level: " << tracker->lastGoodCount << "\n";
+	}
+
+	if (tracker->lastGoodCount < cameraSwitchInterestLevel) {
+		nextCamera = currentKeyFrame->frameSet()->getBestCamera();
+		createNewKeyFrame = true;
+	}
 }
 
-void SlamSystem::switchCameras(int newCam) {
-	std::cout << "Switching cameras\n";
+void SlamSystem::switchCameras(int newCam) 
+{
 	finishCurrentKeyframe();
 	currentCameraMutex.lock();
 	currentCamera = newCam;
-	std::shared_ptr<Frame> newKeyFrame(currentKeyFrame.get()->frameSet()->getFrameSet()->at(currentCamera));
+	std::shared_ptr<Frame> newKeyFrame(currentKeyFrame->frameSet()->getFrameSet()->at(currentCamera));
 	keyFrameGraph->addFrame(newKeyFrame.get());
-	createNewCurrentKeyframe(newKeyFrame);
+
+	if(SLAMEnabled)
+	{
+		// add NEW keyframe to id-lookup
+		keyFrameGraph->idToKeyFrameMutex.lock();
+		keyFrameGraph->idToKeyFrame.insert(std::make_pair(newKeyFrame->id(), newKeyFrame));
+		keyFrameGraph->idToKeyFrameMutex.unlock();
+	}
+
+	float depth[width*height];
+	for (int x=0; x<width; x++) {
+		for (int y=0; y<height; y++) {
+			depth[x+y*width] = lidarDepth->getDepth(x,y,currentCamera);
+		}
+	}
+	newKeyFrame->setDepthFromGroundTruth(depth);
+
+	map->setLidarDepth(lidarDepth, currentCamera);
+	map->initializeFromGTDepth(newKeyFrame.get());
+
+	currentKeyFrameMutex.lock();
+	currentKeyFrame = newKeyFrame;
+	currentKeyFrameMutex.unlock();
+
 	currentCameraMutex.unlock();
-	createNewKeyFrame = true;
+	createNewKeyFrame = false;
 }
 
 float SlamSystem::tryTrackSE3Depth(

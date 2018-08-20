@@ -140,7 +140,7 @@ public:
 		
 		ALL = IMAGE | GRADIENTS | MAX_GRADIENTS | IDEPTH | IDEPTH_VAR | REF_ID
 	};
-	
+
 
 	void setPermaRef(TrackingReference* reference);
 	void takeReActivationData(DepthMapPixelHypothesis* depthMap);

@@ -18,6 +18,28 @@ std::array<Frame*, NUM_CAMERAS> *FrameSet::getFrameSet()
     return &frameSet;
 }
 
+int FrameSet::getBestCamera()
+{
+    //Check all frames
+	int bestCam = 0;
+	int maxMappablePixels = 0;
+	for (int i = 0; i<NUM_CAMERAS; i++) {
+		Frame *f = frameSet[i];
+		f->maxGradients(0);
+
+        if (printInterestLevel) {
+            std::cout << "Camera " << i << " has " << f->numMappablePixels << " mappable pixels\n";
+        }
+
+		if (f->numMappablePixels > maxMappablePixels) {
+			maxMappablePixels = f->numMappablePixels;
+            bestCam = i;
+		}
+	}
+
+    return bestCam;
+}
+
 void FrameSet::setActiveFrame(int af)
 {
     activeFrame = af;
