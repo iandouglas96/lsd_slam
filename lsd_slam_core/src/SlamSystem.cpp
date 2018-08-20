@@ -289,6 +289,7 @@ void SlamSystem::constraintSearchThreadLoop()
 			if(keyFrameGraph->keyframesForRetrack.size() > 10)
 			{
 				std::deque< Frame* >::iterator toReTrack = keyFrameGraph->keyframesForRetrack.begin() + (rand() % (keyFrameGraph->keyframesForRetrack.size()/3));
+				currentCameraMutex.lock();
 				Frame* toReTrackFrame = *toReTrack;
 
 				keyFrameGraph->keyframesForRetrack.erase(toReTrack);
@@ -297,6 +298,7 @@ void SlamSystem::constraintSearchThreadLoop()
 				keyFrameGraph->keyframesForRetrackMutex.unlock();
 
 				int found = findConstraintsForNewKeyFrames(toReTrackFrame, false, false, 2.0);
+				currentCameraMutex.unlock();
 				if(found == 0)
 					failedToRetrack++;
 				else
@@ -320,6 +322,7 @@ void SlamSystem::constraintSearchThreadLoop()
 		}
 		else
 		{
+			currentCameraMutex.lock();
 			Frame* newKF = newKeyFrames.front();
 			newKeyFrames.pop_front();
 			lock.unlock();
@@ -328,6 +331,7 @@ void SlamSystem::constraintSearchThreadLoop()
 			gettimeofday(&tv_start, NULL);
 
 			findConstraintsForNewKeyFrames(newKF, true, true, 1.0);
+			currentCameraMutex.unlock();
 			failedToRetrack=0;
 			gettimeofday(&tv_end, NULL);
 			msFindConstraintsItaration = 0.9*msFindConstraintsItaration + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
@@ -1057,6 +1061,32 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 
 	// Keyframe selection
 	latestTrackedFrame = trackingNewFrame;
+
+	unmappedTrackedFramesMutex.lock();
+	if(unmappedTrackedFrames.size() < 50 || (unmappedTrackedFrames.size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
+		unmappedTrackedFrames.push_back(trackingNewFrame);
+	unmappedTrackedFramesSignal.notify_one();
+	unmappedTrackedFramesMutex.unlock();
+
+	// implement blocking
+	if(blockUntilMapped && trackingIsGood)
+	{
+		boost::unique_lock<boost::mutex> lock(newFrameMappedMutex);
+		while(unmappedTrackedFrames.size() > 0)
+		{
+			//printf("TRACKING IS BLOCKING, waiting for %d frames to finish mapping.\n", (int)unmappedTrackedFrames.size());
+			newFrameMappedSignal.wait(lock);
+		}
+		lock.unlock();
+	}
+
+	if (printInterestLevel) {
+		std::cout << "interest level: " << tracker->lastGoodCount << "\n";
+	}
+	if (tracker->lastGoodCount < cameraSwitchInterestLevel && currentCamera != 2) {
+		switchCameras(2);
+	}
+
 	if (!my_createNewKeyframe && currentKeyFrame->numMappedOnThisTotal > MIN_NUM_MAPPED)
 	{
 		Sophus::Vector3d dist = newRefToFrame_poseUpdate.translation() * currentKeyFrame->meanIdepth;
@@ -1080,33 +1110,18 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 
 		}
 	}
-
-
-	unmappedTrackedFramesMutex.lock();
-	if(unmappedTrackedFrames.size() < 50 || (unmappedTrackedFrames.size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
-		unmappedTrackedFrames.push_back(trackingNewFrame);
-	unmappedTrackedFramesSignal.notify_one();
-	unmappedTrackedFramesMutex.unlock();
-
-	// implement blocking
-	if(blockUntilMapped && trackingIsGood)
-	{
-		boost::unique_lock<boost::mutex> lock(newFrameMappedMutex);
-		while(unmappedTrackedFrames.size() > 0)
-		{
-			//printf("TRACKING IS BLOCKING, waiting for %d frames to finish mapping.\n", (int)unmappedTrackedFrames.size());
-			newFrameMappedSignal.wait(lock);
-		}
-		lock.unlock();
-	}
 }
 
 void SlamSystem::switchCameras(int newCam) {
+	std::cout << "Switching cameras\n";
 	finishCurrentKeyframe();
+	currentCameraMutex.lock();
 	currentCamera = newCam;
 	std::shared_ptr<Frame> newKeyFrame(currentKeyFrame.get()->frameSet()->getFrameSet()->at(currentCamera));
 	keyFrameGraph->addFrame(newKeyFrame.get());
 	createNewCurrentKeyframe(newKeyFrame);
+	currentCameraMutex.unlock();
+	createNewKeyFrame = true;
 }
 
 float SlamSystem::tryTrackSE3Depth(

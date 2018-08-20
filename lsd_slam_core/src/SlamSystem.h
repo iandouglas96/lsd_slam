@@ -132,7 +132,6 @@ private:
 	// ============= EXCLUSIVELY TRACKING THREAD (+ init) ===============
 	TrackingReference* trackingReference; // tracking reference for current keyframe. only used by tracking.
 	SE3Tracker* tracker;
-	int currentCamera;
 
 
 	// ============= EXCLUSIVELY MAPPING THREAD (+ init) =============
@@ -163,6 +162,9 @@ private:
 	int lastNumConstraintsAddedOnFullRetrack;
 	bool doFinalOptimization;
 	float lastTrackingClosenessScore;
+
+	boost::mutex currentCameraMutex;
+	int currentCamera;
 
 	// for sequential operation. Set in Mapping, read in Tracking.
 	boost::condition_variable  newFrameMappedSignal;

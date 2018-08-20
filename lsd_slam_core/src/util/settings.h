@@ -204,6 +204,8 @@ extern bool printRelocalizationInfo;
 extern bool printFrameBuildDebugInfo;
 extern bool printMemoryDebugInfo;
 
+extern bool printInterestLevel;
+
 extern bool printMappingTiming;
 extern bool printOverallTiming;
 extern bool plotTrackingIterationInfo;
@@ -251,6 +253,8 @@ extern bool fillDepthHoles;
 extern float minUseGrad;
 extern float cameraPixelNoise2;
 extern float depthSmoothingFactor;
+
+extern int cameraSwitchInterestLevel;
 
 extern bool useFabMap;
 extern bool doSlam;

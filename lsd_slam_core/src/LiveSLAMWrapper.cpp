@@ -164,6 +164,10 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 	else if(isInitialized && monoOdometry != nullptr)
 	{
 		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec());
+		/*if (imageSeqNumber == 40) {
+			std::cout << "Switiching Cameras!\n";
+			monoOdometry->switchCameras(2);
+		}*/
 	}
 }
 
