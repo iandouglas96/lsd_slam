@@ -184,6 +184,7 @@ private:
 	// Tracking: if (!create) set candidate, set create.
 	// Mapping: if (create) use candidate, reset create.
 	// => no locking required.
+	boost::shared_mutex latestTrackedFrameMutex;
 	std::shared_ptr<Frame> latestTrackedFrame;
 	std::array<std::shared_ptr<Frame>, NUM_CAMERAS> latestTrackedImageArr, currentKeyFrameImageArr;
 	bool createNewKeyFrame;

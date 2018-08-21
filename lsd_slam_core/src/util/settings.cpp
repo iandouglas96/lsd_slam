@@ -71,6 +71,7 @@ bool plotTrackingIterationInfo = true;
 bool plotSim3TrackingIterationInfo = false;
 bool plotStereoImages = false;
 bool plotTracking = true;
+bool publishPointcloud = false;
 
 
 float freeDebugParam1 = 1;

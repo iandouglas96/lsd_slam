@@ -212,6 +212,7 @@ extern bool plotTrackingIterationInfo;
 extern bool plotSim3TrackingIterationInfo;
 extern bool plotStereoImages;
 extern bool plotTracking;
+extern bool publishPointcloud;
 
 
 extern bool allowNegativeIdepths;

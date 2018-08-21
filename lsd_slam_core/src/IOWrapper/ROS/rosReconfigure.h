@@ -44,6 +44,7 @@ void dynConfCbDebug(lsd_slam_core::LSDDebugParamsConfig &config, uint32_t level)
 	plotStereoImages = config.plotStereoImages;
 	plotTrackingIterationInfo = config.plotTrackingIterationInfo;
 	plotTracking = config.plotTracking;
+	publishPointcloud = config.publishPointcloud;
 
 	printPropagationStatistics = config.printPropagationStatistics;
 	printFillHolesStatistics = config.printFillHolesStatistics;

@@ -483,14 +483,16 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	if(enablePrintDebugInfo && printThreadingInfo)
 		printf("CREATE NEW KF %d from %d\n", newKeyframeCandidate->id(), currentKeyFrame->id());
 
-
 	if(SLAMEnabled)
 	{
 		// add NEW keyframe to id-lookup
 		keyFrameGraph->idToKeyFrameMutex.lock();
 		for (int i=0; i<NUM_CAMERAS; i++) {
 			std::shared_ptr<Frame> frame = newKeyframeCandidate->frameSet()->getFrame(i);
-			keyFrameGraph->idToKeyFrame.insert(std::make_pair(frame->id(), frame));
+			if (frame)
+				keyFrameGraph->idToKeyFrame.insert(std::make_pair(frame->id(), frame));
+			else
+				printf("Bad frame pointer!\n");
 		}
 		keyFrameGraph->idToKeyFrameMutex.unlock();
 	}
@@ -515,10 +517,10 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 
 	currentKeyFrameMutex.lock();
 	currentKeyFrame = newKeyframeCandidate;
+	currentKeyFrameMutex.unlock();
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		currentKeyFrameImageArr[i] = latestTrackedImageArr[i];
 	}
-	currentKeyFrameMutex.unlock();
 }
 void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 {
@@ -539,6 +541,7 @@ void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 void SlamSystem::changeKeyframe(bool noCreate, bool force, float maxScore)
 {
 	Frame* newReferenceKF=0;
+	boost::shared_lock<boost::shared_mutex> trackedLock(latestTrackedFrameMutex);
 	std::shared_ptr<Frame> newKeyframeCandidate = latestTrackedFrame;
 	if(doKFReActivation && SLAMEnabled)
 	{
@@ -566,6 +569,7 @@ void SlamSystem::changeKeyframe(bool noCreate, bool force, float maxScore)
 				createNewCurrentKeyframe(newKeyframeCandidate);
 		}
 	}
+	trackedLock.unlock();
 
 
 	createNewKeyFrame = false;
@@ -1081,10 +1085,12 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 	}
 
 	// Keyframe selection
+	boost::unique_lock<boost::shared_mutex> trackedLock(latestTrackedFrameMutex);
 	latestTrackedFrame = trackingNewFrame;
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		latestTrackedImageArr[i] = image_arr[i];
 	}
+	trackedLock.unlock();
 
 	unmappedTrackedFramesMutex.lock();
 	if(unmappedTrackedFrames.size() < 50 || (unmappedTrackedFrames.size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
@@ -1134,21 +1140,25 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 
 	if (tracker->lastGoodCount < cameraSwitchInterestLevel) {
 		nextCamera = currentKeyFrame->frameSet()->getBestCamera();
-		createNewKeyFrame = true;
+		if (nextCamera == currentCamera) {
+			ROS_WARN("WARNING: low texture on image, but already using best camera\n");
+		}
 	}
 }
 
 void SlamSystem::switchCameras(int newCam) 
 {
+	//Get exclusive lock
+	boost::unique_lock<boost::shared_mutex> lock(currentCameraMutex);
+
 	finishCurrentKeyframe();
 
 	struct timeval tv_start, tv_end;
 	gettimeofday(&tv_start, NULL);
-	//Get exclusive lock
-	boost::unique_lock<boost::shared_mutex> lock(currentCameraMutex);
 
 	currentCamera = newCam;
 	std::shared_ptr<Frame> newKeyFrame = currentKeyFrame->frameSet()->getFrame(currentCamera);
+	newKeyFrame->tryRetrack = false; //Set flag to indicate that we shouldn't try to retrack on SE3
 	keyFrameGraph->addFrame(newKeyFrame.get());
 
 	if(SLAMEnabled)
@@ -1169,9 +1179,8 @@ void SlamSystem::switchCameras(int newCam)
 			depth[x+y*width] = lidarDepth->getDepth(x,y,currentCamera);
 		}
 	}
+	
 	newKeyFrame->setDepthFromGroundTruth(depth);
-
-	map->setLidarDepth(lidarDepth, currentCamera);
 	map->initializeFromGTDepth(newKeyFrame.get());
 
 	gettimeofday(&tv_end, NULL);
@@ -1672,10 +1681,12 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 		SE3 initial_guess = newKeyFrame->getScaledCamToWorld().inverse() * parent->getScaledCamToWorld();
 		poseConsistencyMutex.unlock_shared();
 
-		testConstraint(
-				parent, e1, e2,
-				initial_guess,
-				100);
+		if (newKeyFrame->tryRetrack) {
+			testConstraint(
+					parent, e1, e2,
+					initial_guess,
+					100);
+		}
 		if(enablePrintDebugInfo && printConstraintSearchInfo)
 			printf(" PARENT (0)\n");
 

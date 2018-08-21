@@ -49,6 +49,8 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 
 	privateFrameAllocCount++;
 
+	tryRetrack = true;
+
 	if(enablePrintDebugInfo && printMemoryDebugInfo)
 		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
 }
@@ -62,6 +64,8 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 	data.imageValid[0] = true;
 
 	privateFrameAllocCount++;
+
+	tryRetrack = true;
 
 	if(enablePrintDebugInfo && printMemoryDebugInfo)
 		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);

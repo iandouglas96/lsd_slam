@@ -189,6 +189,8 @@ public:
 	Eigen::Vector2f* permaRef_colorAndVarData;	// (I, Var)
 	int permaRefNumPts;
 
+	bool tryRetrack;
+
 
 
 	// Temporary values

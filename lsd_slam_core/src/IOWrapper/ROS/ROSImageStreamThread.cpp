@@ -161,7 +161,6 @@ float ROSImageStreamThread::calcDistance(Eigen::Vector3f &ray_direction, int cam
     t /= proj(1)*proj(1) + proj(2)*proj(2);
 
 	//ROS_INFO_STREAM("Raw dist: " << t);
-
     return t*(dir.dot(focal_plane_dir[cam]));
 }
 
@@ -170,13 +169,9 @@ Eigen::Vector3f ROSImageStreamThread::calcProjectionCameraFrame(int x, int y)
 {
     Eigen::Vector3f hom_pt(x, y, 1);
     hom_pt = cam_intrinsics.inverse()*hom_pt; //put in world coordinates
+    hom_pt.normalize();
 
-    Eigen::Vector3f direction(hom_pt(0),hom_pt(1),hom_pt(2));
-
-    //Normalize so we have a unit vector
-    direction *= 1/direction.norm();
-
-    return direction;
+    return hom_pt;
 }
 
 ROSImageStreamThread::~ROSImageStreamThread()

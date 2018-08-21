@@ -93,8 +93,8 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	fMsg.height = h;
 
 	//If we have the pointcloud, publish it
-	/*
-	if (f->hasIDepthBeenSet()) {
+	
+	if (f->hasIDepthBeenSet() && publishPointcloud) {
 		fMsg.pointcloud.resize(w*h*sizeof(InputPointDense));
 
 		InputPointDense* pc = (InputPointDense*)fMsg.pointcloud.data();
@@ -114,7 +114,7 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 		}
 	} else {
 		fMsg.pointcloud.resize(0);
-	}*/
+	}
 
 	//load image and reference data
 	fMsg.image.resize(sizeof(float)*w*h);
