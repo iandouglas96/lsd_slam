@@ -1032,28 +1032,17 @@ void DepthMap::initializeFromGTDepth(Frame* new_frame)
 
 	float averageGTIDepthSum = 0;
 	int averageGTIDepthNum = 0;
+	float idepthValue;
 	for(int y=0;y<height;y++)
 	{
 		for(int x=0;x<width;x++)
 		{
-			float idepthValue = idepth[x+y*width];
+			idepthValue = idepth[x+y*width];
 			if(!isnanf(idepthValue) && idepthValue > 0)
 			{
 				averageGTIDepthSum += idepthValue;
 				averageGTIDepthNum ++;
-			}
-		}
-	}
-	
 
-	for(int y=0;y<height;y++)
-	{
-		for(int x=0;x<width;x++)
-		{
-			float idepthValue = idepth[x+y*width];
-			
-			if(!isnanf(idepthValue) && idepthValue > 0)
-			{
 				currentDepthMap[x+y*width] = DepthMapPixelHypothesis(
 						idepthValue,
 						idepthValue,
@@ -1068,7 +1057,6 @@ void DepthMap::initializeFromGTDepth(Frame* new_frame)
 			}
 		}
 	}
-
 
 	activeKeyFrame->setDepth(currentDepthMap);
 }

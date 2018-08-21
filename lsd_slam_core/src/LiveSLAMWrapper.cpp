@@ -163,7 +163,14 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 	}
 	else if(isInitialized && monoOdometry != nullptr)
 	{
+		struct timeval tv_start, tv_end;
+		gettimeofday(&tv_start, NULL);
 		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec());
+		gettimeofday(&tv_end, NULL);
+		if(enablePrintDebugInfo && printOverallTiming) {
+			float msTrack = ((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
+			printf("Tracking function: %fms\n", msTrack);
+		}
 		/*if (imageSeqNumber == 40) {
 			std::cout << "Switiching Cameras!\n";
 			monoOdometry->switchCameras(2);

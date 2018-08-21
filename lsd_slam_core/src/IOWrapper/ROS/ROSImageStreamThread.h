@@ -113,23 +113,22 @@ private:
 
 	//Depth calc stuff
 	int old_width_, old_height_;
-	cv::Matx33d cam_intrinsics;
+	Eigen::Matrix3f cam_intrinsics;
 
 	tf2_ros::Buffer *tf_buffer;
     tf2_ros::TransformListener *tf_listener;
 
-    tf2::Stamped<tf2::Transform> transforms[NUM_CAMERAS];
+    Eigen::Affine3f cam_pose[NUM_CAMERAS];
 
 	ros::Subscriber radius_sub;
     float tunnel_radius;
 
-	Eigen::Vector3d focal_plane_dir[NUM_CAMERAS];
+	Eigen::Vector3f focal_plane_dir[NUM_CAMERAS];
 
 	const std::string camera_names[NUM_CAMERAS] = {"cam_top_left", "cam_top_right", "cam_bottom_left", "cam_bottom_right"};
 
-    cv::Point3d calcProjectionCameraFrame(int x, int y);
-    void unitVectorToPose(const std::string& frame, cv::Point3f vec, tf2::Stamped<tf2::Transform>& trans);
-    float calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform, int cam);
+    Eigen::Vector3f calcProjectionCameraFrame(int x, int y);
+    float calcDistance(Eigen::Vector3f &ray_direction, int cam);
 	
 	//Point Cloud processing
 	ros::Subscriber pointcloud_sub;

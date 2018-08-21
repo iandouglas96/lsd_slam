@@ -1141,6 +1141,9 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 void SlamSystem::switchCameras(int newCam) 
 {
 	finishCurrentKeyframe();
+
+	struct timeval tv_start, tv_end;
+	gettimeofday(&tv_start, NULL);
 	//Get exclusive lock
 	boost::unique_lock<boost::shared_mutex> lock(currentCameraMutex);
 
@@ -1170,6 +1173,10 @@ void SlamSystem::switchCameras(int newCam)
 
 	map->setLidarDepth(lidarDepth, currentCamera);
 	map->initializeFromGTDepth(newKeyFrame.get());
+
+	gettimeofday(&tv_end, NULL);
+	float ms = ((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
+	printf("Camera switch: %fms\n", ms);
 
 	currentKeyFrameMutex.lock();
 	currentKeyFrame = newKeyFrame;
