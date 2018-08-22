@@ -55,7 +55,7 @@ public:
 	virtual void publishKeyframe(Frame* kf) {};
 
 	// published a tracked frame that did not become a keyframe (yet; i.e. has no depth data)
-	virtual void publishTrackedFrame(Frame* kf) {};
+	virtual void publishTrackedFrame(Frame* kf, int cam) {};
 
 	// publishes graph and all constraints, as well as updated KF poses.
 	virtual void publishTrajectory(std::vector<Eigen::Matrix<float, 3, 1>> trajectory, std::string identifier) {};

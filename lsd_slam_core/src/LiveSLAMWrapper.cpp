@@ -112,7 +112,7 @@ void LiveSLAMWrapper::Loop()
 
 		Util::displayThreadLoop();
 
-		int key = cv::waitKey(30) & 255; // key is an integer here
+		int key = cv::waitKey(1) & 255; // key is an integer here
 		if (key == 27) {
 			printf("Quitting...");
 			break;            // break when `esc' key is pressed

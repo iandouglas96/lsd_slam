@@ -559,21 +559,28 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 
 	if (valid)
 	{
-		K_ = cv::Mat(originalK_);
+		K_ = cv::Mat(3, 3, CV_64F, cv::Scalar(0));
+		K_.at<double>(0, 0) = originalK_.at<double>(0, 0)/(in_width/out_width);
+		K_.at<double>(1, 1) = originalK_.at<double>(1, 1)/(in_height/out_height);
+		K_.at<double>(2, 2) = 1;
+		K_.at<double>(0, 2) = originalK_.at<double>(0, 2)/(in_width/out_width);
+		K_.at<double>(1, 2) = originalK_.at<double>(1, 2)/(in_height/out_height);
 
 		if (l4 == "fish") {
 			printf("Using fisheye model\n");
-			cv::fisheye::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), K_,
+			cv::fisheye::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), originalK_,
 				cv::Size(in_width, in_height), CV_16SC2, map1, map2);	
 		} else {
 			printf("Using standard opencv model\n");
-			cv::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), K_,
+			cv::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), originalK_,
 				cv::Size(in_width, in_height), CV_16SC2, map1, map2);	
 		}
 	}
+
+	//Distort mask to match
+	cv::remap(mask, mask, map1, map2, cv::INTER_LINEAR);
 	
 	originalK_ = originalK_.t();
-	K_ = K_.t();
 }
 
 UndistorterOpenCV::~UndistorterOpenCV()

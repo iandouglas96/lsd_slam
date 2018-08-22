@@ -58,7 +58,7 @@
   </group>
 
 
-  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.3 --start=45 --duration=150 --clock">
+  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.5 --start=10 --duration=150 --clock">
     <remap from="/velodyne_point_cloud" to="/velodyne_points"/>
     <remap from="/quadruple/bottom_left/image_raw/compressed"  to="/cam/bottom_left/compressed"/>
     <remap from="/quadruple/bottom_right/image_raw/compressed" to="/cam/bottom_right/compressed"/>
@@ -90,6 +90,8 @@
 
   <!-- Broadcast static transform b/w each camera and lidar -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="camera_center_tf" args="0 0 0 -0.5 0 0 robot_ukf cam_center" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_takeoff_top_left_tf" args="0 -0.1 -0.06 -1.57 0 0.785 takeoff_top_left takeoff" />
 
   <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_left_tf" args="0 0.1 0.06 1.57 0.785 0 cam_center cam_top_left" />
   <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_right_tf" args="0 -0.1 0.06 -1.57 0.785 0 cam_center cam_top_right" />
@@ -146,7 +148,7 @@
 
   <!-- LSD SLAM system -->
   <!-- Yes, the bottom camera names are backwards for this dataset -->
-  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" launch-prefix="gdb -ex run --args" output="screen">
+  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
     <remap from="top_left_image" to="/camera/top_left_image_debayer"/>
     <remap from="top_right_image" to="/camera/top_right_image_debayer"/>
     <remap from="bottom_left_image" to="/camera/bottom_right_image_debayer"/>

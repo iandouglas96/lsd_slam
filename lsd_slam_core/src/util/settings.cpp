@@ -87,7 +87,7 @@ float minUseGrad = 20;
 float cameraPixelNoise2 = 5*5;
 float depthSmoothingFactor = 1;
 
-int cameraSwitchInterestLevel = 55000;
+float cameraSwitchInterestLevel = 55000/(1080*1280);
 
 int maskBrightnessLimit = 256; //256 is off
 bool maskRectangle = false;

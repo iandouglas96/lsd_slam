@@ -125,8 +125,6 @@ private:
 
 	Eigen::Vector3f focal_plane_dir[NUM_CAMERAS];
 
-	const std::string camera_names[NUM_CAMERAS] = {"cam_top_left", "cam_top_right", "cam_bottom_left", "cam_bottom_right"};
-
     Eigen::Vector3f calcProjectionCameraFrame(int x, int y);
     float calcDistance(Eigen::Vector3f &ray_direction, int cam);
 	

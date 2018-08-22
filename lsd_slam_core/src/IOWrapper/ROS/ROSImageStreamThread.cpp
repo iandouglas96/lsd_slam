@@ -123,7 +123,7 @@ SE3NoX ROSImageStreamThread::getTransformFromTunnel(int cam)
 SE3 ROSImageStreamThread::getTransformBetweenCameras(int from, int to)
 {
 	tf2::Stamped<tf2::Transform> tf_transform;
-	tf2::convert(tf_buffer->lookupTransform(this->camera_names[to], this->camera_names[from], ros::Time(0), ros::Duration(1.0)), tf_transform); 
+	tf2::convert(tf_buffer->lookupTransform(camera_names[to], camera_names[from], ros::Time(0), ros::Duration(1.0)), tf_transform); 
 
 	Eigen::Quaterniond quat;
 	Eigen::Vector3d trans(tf_transform.getOrigin().getX(), tf_transform.getOrigin().getY(), tf_transform.getOrigin().getZ());

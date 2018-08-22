@@ -22,6 +22,7 @@
 
 #include <ros/ros.h>
 #include "IOWrapper/Output3DWrapper.h"
+#include "util/settings.h"
 
 
 namespace lsd_slam
@@ -68,7 +69,7 @@ public:
 	virtual void publishKeyframe(Frame* f);
 
 	// published a tracked frame that did not become a keyframe (i.e. has no depth data)
-	virtual void publishTrackedFrame(Frame* f);
+	virtual void publishTrackedFrame(Frame* f, int cam);
 
 	// publishes graph and all constraints, as well as updated KF poses.
 	virtual void publishTrajectory(std::vector<Eigen::Matrix<float, 3, 1>> trajectory, std::string identifier);

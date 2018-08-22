@@ -957,7 +957,7 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 }
 
 void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp){
-	boost::shared_lock<boost::shared_mutex> lock(currentCameraMutex);
+	boost::shared_lock<boost::shared_mutex> cam_lock(currentCameraMutex);
 
 	cv::Mat imagecv(cv::Size(width, height), CV_8UC1, image[currentCamera], cv::Mat::AUTO_STEP);
 	Util::displayImage("current tracking image", imagecv);
@@ -1004,7 +1004,7 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 
 	FramePoseStruct* trackingReferencePose = trackingReference->keyframe->pose;
 	currentKeyFrameMutex.unlock();
-	lock.unlock();
+	cam_lock.unlock();
 
 	// DO TRACKING & Show tracking result.
 	if(enablePrintDebugInfo && printThreadingInfo)
@@ -1081,7 +1081,7 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 	//Sim3 lastTrackedCamToWorld = mostCurrentTrackedFrame->getScaledCamToWorld();//  mostCurrentTrackedFrame->TrackingParent->getScaledCamToWorld() * sim3FromSE3(mostCurrentTrackedFrame->thisToParent_SE3TrackingResult, 1.0);
 	if (outputWrapper != 0)
 	{
-		outputWrapper->publishTrackedFrame(trackingNewFrame.get());
+		outputWrapper->publishTrackedFrame(trackingNewFrame.get(), currentCamera);
 	}
 
 	// Keyframe selection
@@ -1135,10 +1135,10 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, boo
 	}
 
 	if (printInterestLevel) {
-		std::cout << "interest level: " << tracker->lastGoodCount << "\n";
+		std::cout << "interest level: " << tracker->lastGoodCount/(width*height) << "\n";
 	}
 
-	if (tracker->lastGoodCount < cameraSwitchInterestLevel) {
+	if (tracker->lastGoodCount/(width*height) < cameraSwitchInterestLevel) {
 		nextCamera = currentKeyFrame->frameSet()->getBestCamera();
 		if (nextCamera == currentCamera) {
 			ROS_WARN("WARNING: low texture on image, but already using best camera\n");

@@ -371,10 +371,12 @@ void KeyFrameDisplay::drawCylinderSegmentHD()
 	glPushMatrix();
 	Sophus::Matrix4f m = camToWorld.matrix();
 	glMultMatrixf((GLfloat*)m.data());  
+
+	float yClear = (nbSteps/2.0)*(1.0-1.0/imageWidth);
     
     for (int x = 0; x <= nbSteps; ++x) {
         glBegin(GL_QUAD_STRIP);
-        for (int y = 0; y <= nbSteps; ++y) {
+        for (int y = (int)yClear; y <= nbSteps-(int)yClear; ++y) {
             const float x_ratio = x / nbSteps;
             const float y_ratio = y / nbSteps;
             const float x_pt = x_ratio*width;

@@ -23,6 +23,8 @@
 #include <ros/ros.h>
 #include "util/settings.h"
 
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include "std_msgs/Float32MultiArray.h"
 #include "lsd_slam_viewer/keyframeGraphMsg.h"
@@ -32,6 +34,7 @@
 #include "GlobalMapping/KeyFrameGraph.h"
 #include "sophus/sim3.hpp"
 #include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/TransformStamped.h"
 #include <tf2_eigen/tf2_eigen.h>
 #include "GlobalMapping/g2oTypeSE3Sophus.h"
 #include <Eigen/Dense>
@@ -127,10 +130,10 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	keyframe_publisher.publish(fMsg);
 }
 
-void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf)
+void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf, int cam)
 {
+	//Regular message publisher (for viewer)
 	lsd_slam_viewer::keyframeMsg fMsg;
-
 
 	fMsg.id = kf->id();
 	fMsg.time = kf->timestamp();
@@ -173,6 +176,24 @@ void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf)
 	pMsg.header.stamp = ros::Time(kf->timestamp());
 	pMsg.header.frame_id = "world";
 	pose_publisher.publish(pMsg);
+
+	//tf publisher (for rviz)
+	SE3 worldToCam = (kf->getScaledCamToWorld().inverse());
+	static tf2_ros::TransformBroadcaster tf_br;
+	geometry_msgs::TransformStamped transformStamped;
+  
+	transformStamped.header.stamp = ros::Time::now();
+	transformStamped.header.frame_id = camera_names[cam];
+	transformStamped.child_frame_id = "takeoff_top_left";
+	transformStamped.transform.translation.x = worldToCam.translation()[0];
+	transformStamped.transform.translation.y = worldToCam.translation()[1];
+	transformStamped.transform.translation.z = worldToCam.translation()[2];
+	transformStamped.transform.rotation.x = worldToCam.so3().unit_quaternion().x();
+	transformStamped.transform.rotation.y = worldToCam.so3().unit_quaternion().y();
+	transformStamped.transform.rotation.z = worldToCam.so3().unit_quaternion().z();
+	transformStamped.transform.rotation.w = worldToCam.so3().unit_quaternion().w();
+
+	tf_br.sendTransform(transformStamped);
 }
 
 
