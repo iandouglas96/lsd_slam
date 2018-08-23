@@ -168,9 +168,9 @@ namespace lsd_slam
 #define MIN_NUM_MAPPED 5
 
 //Multicamera settings
-#define NUM_CAMERAS 4
+#define NUM_CAMERAS 1
 
-const std::string camera_names[NUM_CAMERAS] = {"cam_top_left", "cam_top_right", "cam_bottom_left", "cam_bottom_right"};
+const std::string camera_names[NUM_CAMERAS] = {"cam_top_left"/*, "cam_top_right", "cam_bottom_left", "cam_bottom_right"*/};
 
 // settings variables
 // controlled via keystrokes

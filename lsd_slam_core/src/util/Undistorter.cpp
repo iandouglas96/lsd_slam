@@ -560,11 +560,11 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 	if (valid)
 	{
 		K_ = cv::Mat(3, 3, CV_64F, cv::Scalar(0));
-		K_.at<double>(0, 0) = originalK_.at<double>(0, 0)/(in_width/out_width);
-		K_.at<double>(1, 1) = originalK_.at<double>(1, 1)/(in_height/out_height);
+		K_.at<double>(0, 0) = originalK_.at<double>(0, 0)/((double)in_width/out_width);
+		K_.at<double>(1, 1) = originalK_.at<double>(1, 1)/((double)in_height/out_height);
 		K_.at<double>(2, 2) = 1;
-		K_.at<double>(0, 2) = originalK_.at<double>(0, 2)/(in_width/out_width);
-		K_.at<double>(1, 2) = originalK_.at<double>(1, 2)/(in_height/out_height);
+		K_.at<double>(0, 2) = originalK_.at<double>(0, 2)/((double)in_width/out_width);
+		K_.at<double>(1, 2) = originalK_.at<double>(1, 2)/((double)in_height/out_height);
 
 		if (l4 == "fish") {
 			printf("Using fisheye model\n");

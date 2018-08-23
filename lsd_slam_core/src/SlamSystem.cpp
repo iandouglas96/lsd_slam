@@ -206,7 +206,7 @@ void SlamSystem::mergeOptimizationOffset()
 
 
 
-	if(needPublish)
+	if(needPublish) 
 		publishKeyframeGraph();
 }
 
@@ -644,8 +644,12 @@ bool SlamSystem::updateKeyframe()
 
 
 
-	if(outputWrapper != 0 && continuousPCOutput && currentKeyFrame != 0)
-		outputWrapper->publishKeyframe(currentKeyFrame.get());
+	if(outputWrapper != 0 && continuousPCOutput && currentKeyFrame != 0) {
+		for (int i=0; i<NUM_CAMERAS; i++) {
+			//std::cout << "publishing int: " << i << "\n";
+			outputWrapper->publishKeyframe(currentKeyFrame->frameSet()->getFrame(i).get());
+		}
+	}
 
 	return true;
 }

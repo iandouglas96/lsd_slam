@@ -3,30 +3,30 @@
 <launch>
   <!-- Run from rosbag -->
   
-  <arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/outdoors_datasets/outdoors_image_lidar_asphalt_2018-07-27-11-10-34.bag"/>
-  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet $(arg bagfile_path) --rate=0.1 --start=5 --clock"/>
+  <!--arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/outdoors_datasets/outdoors_image_lidar_asphalt_2018-07-27-11-10-34.bag"/>
+  <node pkg="rosbag" name="play" type="play" output="screen" args="++quiet $(arg bagfile_path) ++rate=0.1 ++start=5 ++clock"/-->
 
   <!-- Run in realtime -->
-  <!--include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>
+  <include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>
 
   <include file="$(find flea3)/launch/single_node.launch">
-    <arg name="device" value="16061374"/>
+    <arg name="device" value="16401219"/>
   </include>
   
   <node pkg="image_proc" type="image_proc" name="image_proc">
-    <remap from="image_raw" to="/pg_16061374/image_raw"/>
-    <remap from="camera_info" to="/pg_16061374/camera_info"/>
-    <remap from="image_rect" to="/pg_16061374/image_rect"/>
-    <remap from="image_mono" to="/pg_16061374/image_mono"/>
-  </node-->
+    <remap from="image_raw" to="/pg_16401219/image_raw"/>
+    <remap from="camera_info" to="/pg_16401219/camera_info"/>
+    <remap from="image_rect" to="/pg_16401219/image_rect"/>
+    <remap from="image_mono" to="/pg_16401219/image_mono"/>
+  </node>
 
-  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_left_tf" args="-0.0579167 0.0585683 0.0 -0.0138 0.0034 -0.0526 velodyne cam_top_left" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_left_tf" args="0.0796279 -0.011135 0 0.0568 0.0732 -0.0076 velodyne cam_top_left" />
 
   <!-- LSD SLAM system -->
   <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
-    <remap from="image" to="/pg_16061374/image_mono"/>
-    <!--remap from="camera_info" to="/pg_16061374/camera_info"/-->
-    <param name="calib" value="/home/ian/.ros/camera_info/pg_16061374.cfg"/>
+    <remap from="top_left_image" to="/pg_16401219/image_mono"/>
+    <!--remap from="camera_info" to="/pg_16401219/camera_info"/-->
+    <param name="calib" value="/home/ian/.ros/camera_info/lidar_cam_test_rig.cfg"/>
     <remap from="pointcloud" to="/velodyne_point_cloud"/>
     <param name="use_tunnel_estimator" value="false"/>
   </node>

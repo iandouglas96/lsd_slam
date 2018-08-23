@@ -86,10 +86,10 @@ public:
 	bool depthReady();
 	
 	// get called on ros-message callbacks
-	void vidCb(const sensor_msgs::ImageConstPtr top_left_img,
+	void vidCb(const sensor_msgs::ImageConstPtr top_left_img/*,
 			   const sensor_msgs::ImageConstPtr top_right_img, 
 			   const sensor_msgs::ImageConstPtr bottom_left_img, 
-			   const sensor_msgs::ImageConstPtr bottom_right_img);
+			   const sensor_msgs::ImageConstPtr bottom_right_img*/);
 	void infoCb(const sensor_msgs::CameraInfoConstPtr info);
 	void radiusCb(const std_msgs::Float64::ConstPtr& msg);
 	void pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg);

@@ -46,7 +46,7 @@
   <arg name="bagfile_path31" value="/media/ozaslan/research_backup/inspot_dataset/MayT2017CHDrip/Day3/phase1/inspot_2017-05-04-11-59-59.bag" />
   <arg name="bagfile_path32" value="/media/ozaslan/research_backup/inspot_dataset/MayT2017CHDrip/Day3/phase1/inspot_2017-05-04-15-24-28.bag" />
 -->
-  <arg name="bagfile_path" value="/media/ian/ExtSSD/InspectionData/tunnel_datasets/CHD/AprilTags/inspot_2018-08-02-13-11-19-005.bag"/>
+  <arg name="bagfile_path" value="/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/AprilTags/inspot_2018-08-02-13-11-19-005.bag"/>
   <arg name="debug_mode"   value="FALSE"/>
 
   <arg name="use_gdb" value="FALSE" />
@@ -58,7 +58,7 @@
   </group>
 
 
-  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.5 --start=10 --duration=150 --clock">
+  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.5 --start=15 --duration=150 --clock">
     <remap from="/velodyne_point_cloud" to="/velodyne_points"/>
     <remap from="/quadruple/bottom_left/image_raw/compressed"  to="/cam/bottom_left/compressed"/>
     <remap from="/quadruple/bottom_right/image_raw/compressed" to="/cam/bottom_right/compressed"/>
