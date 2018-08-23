@@ -3,17 +3,188 @@
 
 -->
 <launch>
-<!-- Decompress the image -->
-  <node name="republish" pkg="image_transport" type="republish" args="compressed">
+  <param name="use_sim_time" value="true" />
+<!--
+  <arg name="bagfile_path00" value="/home/ozaslan/storage/inspot_2016-07-12-17-11-26.bag"/>
+  <arg name="bagfile_path01" value="/home/ozaslan/inspot_2016-07-13-14-14-52.bag"/>
+  <arg name="bagfile_path02" value="/home/ozaslan/inspot_2016-07-13-15-49-03.bag"/>
+  <arg name="bagfile_path03" value="$(env ROS_DATASET_PATH)/inspot/towne01.bag"/>
+  <arg name="bagfile_path04" value="$(env ROS_DATASET_PATH)/inspot/towne02.bag"/>
+  <arg name="bagfile_path05" value="$(env ROS_DATASET_PATH)/inspot/towne03.bag"/>
+  <arg name="bagfile_path06" value="$(env ROS_DATASET_PATH)/inspot/towne04.bag"/>
+  <arg name="bagfile_path07" value="$(env ROS_DATASET_PATH)/inspot/towne05.bag"/>
+  <arg name="bagfile_path08" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-15-23-49.bag"/>
+  <arg name="bagfile_path09" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-14-57-18.bag"/>
+  <arg name="bagfile_path10" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-15-02-30.bag"/>
+  <arg name="bagfile_path11" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-15-10-52.bag"/> 
+  <arg name="bagfile_path12" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-15-27-59.bag"/>
+  <arg name="bagfile_path13" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-14-58-42.bag"/>
+  <arg name="bagfile_path14" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-15-07-33.bag"/>
+  <arg name="bagfile_path15" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-15-23-08.bag"/>
+  <arg name="bagfile_path16" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-15-01-44.bag"/>
+  <arg name="bagfile_path17" value="/media/ozaslan/research_backup/inspot/second_stage/inspot_2016-10-27-15-08-30.bag"/> 
+  <arg name="bagfile_path18" value="/media/ozaslan/research_backup/inspot/old/inspot_2016-07-11-16-36-54.bag"/> 
+  <arg name="bagfile_path19" value="/media/ozaslan/research_backup/inspot/old/inspot_2016-07-11-16-55-18.bag"/> 
+  
+  <arg name="bagfile_path20" value="/media/ozaslan/research_backup/inspot/30Nov2016WedCHD_morning/inspot_2016-11-30-11-17-29.bag"/>
+  <arg name="bagfile_path21" value="/media/ozaslan/research_backup/inspot/30Nov2016WedCHD_morning/inspot_2016-11-30-11-12-40.bag"/>
+
+  <arg name="bagfile_path22" value="/media/ozaslan/research_backup/inspot/30Nov2016WedCHD_morning02/inspot_2016-11-30-11-34-21.bag"/>
+  <arg name="bagfile_path23" value="/media/ozaslan/research_backup/inspot/30Nov2016WedCHD_morning02/inspot_2016-11-30-11-58-47.bag"/>
+  
+  <arg name="bagfile_path24" value="/media/ozaslan/research_backup/inspot/February9_CHD/feb9phase3/inspot_2017-02-09-13-50-52.bag"/>
+  <arg name="bagfile_path25" value="/media/ozaslan/research_backup/inspot/February9_CHD/feb9phase3/inspot_2017-02-09-13-31-38.bag"/>
+
+  <arg name="bagfile_path26" value="/media/ozaslan/research_backup/inspot/February9_CHD/feb9phase2/inspot_2017-02-09-12-33-01.bag"/>
+  <arg name="bagfile_path27" value="/media/ozaslan/research_backup/inspot/February9_CHD/feb9phase2/inspot_2017-02-09-13-08-50.bag"/> 
+  
+  <arg name="bagfile_path28" value="/media/ozaslan/research_backup/inspot/MayTrip/phase1/inspot_2017-05-03-15-53-26.bag"/> 
+  <arg name="bagfile_path29" value="/media/ozaslan/research_backup/inspot/MayTrip/phase2/inspot_2017-05-03-16-14-27.bag"/> 
+  <arg name="bagfile_path30" value="/home/inspot/.ros/inspot/phase3/inspot_2017-05-03-16-29-03.bag"/> 
+
+
+  <arg name="bagfile_path31" value="/media/ozaslan/research_backup/inspot_dataset/MayT2017CHDrip/Day3/phase1/inspot_2017-05-04-11-59-59.bag" />
+  <arg name="bagfile_path32" value="/media/ozaslan/research_backup/inspot_dataset/MayT2017CHDrip/Day3/phase1/inspot_2017-05-04-15-24-28.bag" />
+-->
+  <arg name="bagfile_path" value="/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/AprilTags/inspot_2018-08-02-13-11-19-005.bag"/>
+  <arg name="debug_mode"   value="FALSE"/>
+
+  <arg name="use_gdb" value="FALSE" />
+  <group if="$(arg use_gdb)">
+    <arg name="gdb_launch_prefix" value="gdb -ex run --args" />
+  </group>
+  <group unless="$(arg use_gdb)">
+    <arg name="gdb_launch_prefix" value=" " />
+  </group>
+
+
+  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.5 --start=15 --duration=150 --clock">
+    <remap from="/velodyne_point_cloud" to="/velodyne_points"/>
+    <remap from="/quadruple/bottom_left/image_raw/compressed"  to="/cam/bottom_left/compressed"/>
+    <remap from="/quadruple/bottom_right/image_raw/compressed" to="/cam/bottom_right/compressed"/>
+    <remap from="/quadruple/top_left/image_raw/compressed"     to="/cam/top_left/compressed"/>
+    <remap from="/quadruple/top_right/image_raw/compressed"    to="/cam/top_right/compressed"/>
+    <remap from="/meas_odom" to="/meas_odom_recorded"/>
+  </node>
+
+  <node pkg="rviz" name="rviz" type="rviz" args="-d $(find tunnel_estimator)/rviz/test_icra2017_video.rviz"/>
+
+  <node pkg="tunnel_estimator" name="test_icra2017_video" type="test_icra2017_video">
+    <!-- launch-prefix="$(arg gdb_launch_prefix)" -->
+    <rosparam file="$(find tunnel_estimator)/config/pc_to_surfaces_params.yaml"/>
+    <rosparam file="$(find tunnel_estimator)/config/visualization_params.yaml"/>
+    <param name="debug_mode" value="$(arg debug_mode)"/>
+    
+    <remap from="~/velodyne_points" to="/velodyne_points"/>
+    <remap from="~/imu" to="/mavros/imu/data"/>
+    <remap from="~/cam" to="/cam/top_left/compressed"/>
+    <remap from="~/odom" to="/meas_odom"/>
+
+    <!--
+    <param name="top_left_cam_calib_file"		  value="$(find calib_data)/camera/inspot_top_left_cam.yaml"/>
+		<param name="top_right_cam_calib_file"		value="$(find calib_data)/camera/inspot_top_right_cam.yaml"/>
+		<param name="bottom_right_cam_calib_file"	value="$(find calib_data)/camera/inspot_bottom_right_cam.yaml"/>
+		<param name="bottom_left_cam_calib_file"	value="$(find calib_data)/camera/inspot_bottom_left_cam.yaml"/>
+    -->
+  </node>
+
+  <!-- Broadcast static transform b/w each camera and lidar -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_center_tf" args="0 0 0 -0.5 0 0 robot_ukf cam_center" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_takeoff_top_left_tf" args="0 -0.1 -0.06 -1.57 0 0.785 takeoff_top_left takeoff" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_left_tf" args="0 0.1 0.06 1.57 0.785 0 cam_center cam_top_left" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_top_right_tf" args="0 -0.1 0.06 -1.57 0.785 0 cam_center cam_top_right" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_bottom_left_tf" args="0 0.1 -0.06 -1.57 -2.36 0 cam_center cam_bottom_left" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_bottom_right_tf" args="0 -0.1 -0.06 1.57 -2.36 0 cam_center cam_bottom_right" />
+
+  <!-- Decompress the image -->
+  <node name="republish_top_left" pkg="image_transport" type="republish" args="compressed">
     <remap from="in"  to="/cam/top_left"/>
     <remap from="out"  to="/camera/top_left_image_decomp"/>
   </node>
 
-  <!-- LSD SLAM system -->
-  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
-    <remap from="image" to="/camera/top_left_image_decomp"/>
-    <remap from="local_tunnel_radius" to="/test_icra2017_video/local_tunnel_radius"/>
-    <param name="calib" value="/home/ian/inspect_data/raw_calib.cfg"/>
-    <param name="hz" value="30"/>
+  <!-- Debayer -->
+  <node pkg="image_proc" type="image_proc" name="image_proc_top_left">
+    <remap from="image_raw" to="/camera/top_left_image_decomp"/>
+    <remap from="image_mono" to="/camera/top_left_image_debayer"/>
   </node>
+
+    <!-- Decompress the image -->
+  <node name="republish_top_right" pkg="image_transport" type="republish" args="compressed">
+    <remap from="in"  to="/cam/top_right"/>
+    <remap from="out"  to="/camera/top_right_image_decomp"/>
+  </node>
+
+  <!-- Debayer -->
+  <node pkg="image_proc" type="image_proc" name="image_proc_top_right">
+    <remap from="image_raw" to="/camera/top_right_image_decomp"/>
+    <remap from="image_mono" to="/camera/top_right_image_debayer"/>
+  </node>
+
+    <!-- Decompress the image -->
+  <node name="republish_bottom_left" pkg="image_transport" type="republish" args="compressed">
+    <remap from="in"  to="/cam/bottom_left"/>
+    <remap from="out"  to="/camera/bottom_left_image_decomp"/>
+  </node>
+
+  <!-- Debayer -->
+  <node pkg="image_proc" type="image_proc" name="image_proc_bottom_left">
+    <remap from="image_raw" to="/camera/bottom_left_image_decomp"/>
+    <remap from="image_mono" to="/camera/bottom_left_image_debayer"/>
+  </node>
+
+    <!-- Decompress the image -->
+  <node name="republish_bottom_right" pkg="image_transport" type="republish" args="compressed">
+    <remap from="in"  to="/cam/bottom_right"/>
+    <remap from="out"  to="/camera/bottom_right_image_decomp"/>
+  </node>
+
+  <!-- Debayer -->
+  <node pkg="image_proc" type="image_proc" name="image_proc_bottom_right">
+    <remap from="image_raw" to="/camera/bottom_right_image_decomp"/>
+    <remap from="image_mono" to="/camera/bottom_right_image_debayer"/>
+  </node>
+
+  <!-- LSD SLAM system -->
+  <!-- Yes, the bottom camera names are backwards for this dataset -->
+  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
+    <remap from="top_left_image" to="/camera/top_left_image_debayer"/>
+    <remap from="top_right_image" to="/camera/top_right_image_debayer"/>
+    <remap from="bottom_left_image" to="/camera/bottom_right_image_debayer"/>
+    <remap from="bottom_right_image" to="/camera/bottom_left_image_debayer"/>
+    <remap from="local_tunnel_radius" to="/test_icra2017_video/local_tunnel_radius"/>
+    <param name="calib" value="/home/ian/.ros/camera_info/camera_intrinsics_set.cfg"/>
+    <param name="use_tunnel_estimator" value="true"/>
+  </node>
+
+  <node name="viewer" pkg="lsd_slam_viewer" type="viewer" output="screen"/>
+
+  <node pkg ="quadrotor_ukf_lite" 
+        name="quadrotor_ukf" 
+        type="quadrotor_ukf" 
+        output="screen">
+    <rosparam file="$(find quadrotor_ukf_lite)/config/params.yaml"/>
+    <remap from="~imu" to="/mavros/imu/data_raw"/>
+    <remap from="~odom_slam" to="/meas_odom"/>
+  </node>    
+
+  <node name="meas_odom_visualization"
+        pkg ="odom_visualization"
+        type="odom_visualization_node"
+        output="screen" >
+                             
+        <remap from="~odom" to="/meas_odom"/>
+        <rosparam file="$(find odom_visualization)/config/config03.yaml" />
+   </node>
+
+   <node name="control_odom_visualization"
+        pkg ="odom_visualization"
+        type="odom_visualization_node"
+        output="screen" >
+                             
+        <remap from="~odom" to="/control_odom"/>
+        <rosparam file="$(find odom_visualization)/config/config02.yaml" />
+      </node>
+     
 </launch>

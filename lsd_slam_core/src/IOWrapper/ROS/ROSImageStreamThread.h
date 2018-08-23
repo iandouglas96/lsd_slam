@@ -35,6 +35,11 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 
@@ -45,7 +50,10 @@
 namespace lsd_slam
 {
 
-
+typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, 
+													sensor_msgs::Image,
+													sensor_msgs::Image,
+													sensor_msgs::Image> SynchPolicy;
 
 /**
  * Image stream provider using ROS messages.
@@ -69,15 +77,19 @@ public:
 	void operator()();
 
 	//Get depth (in meters) for a particular pixel at x,y
-    float getDepth(int x, int y);
+    float getDepth(int x, int y, int cam);
 
-	SE3NoX getTransform();
+	SE3NoX getTransformFromTunnel(int cam);
+	SE3 getTransformBetweenCameras(int from, int to);
 	float getRadius();
 
 	bool depthReady();
 	
 	// get called on ros-message callbacks
-	void vidCb(const sensor_msgs::ImageConstPtr img);
+	void vidCb(const sensor_msgs::ImageConstPtr top_left_img/*,
+			   const sensor_msgs::ImageConstPtr top_right_img, 
+			   const sensor_msgs::ImageConstPtr bottom_left_img, 
+			   const sensor_msgs::ImageConstPtr bottom_right_img*/);
 	void infoCb(const sensor_msgs::CameraInfoConstPtr info);
 	void radiusCb(const std_msgs::Float64::ConstPtr& msg);
 	void pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg);
@@ -86,32 +98,35 @@ public:
 private:
 	//Image stream stuff
 	bool haveCalib, haveDepthMap;
-	Undistorter* undistorter;
+	Undistorter* undistorter[NUM_CAMERAS];
 
 	ros::NodeHandle nh_;
 
-	std::string vid_channel;
-	ros::Subscriber vid_sub;
+	//Must maintain pointers or c will delete the subscription immediately.
+	message_filters::Subscriber<sensor_msgs::Image> *top_left_sub;
+	message_filters::Subscriber<sensor_msgs::Image> *top_right_sub;
+	message_filters::Subscriber<sensor_msgs::Image> *bottom_left_sub;
+	message_filters::Subscriber<sensor_msgs::Image> *bottom_right_sub;
+	message_filters::Synchronizer<SynchPolicy> *image_sub;
 
 	int lastSEQ;
 
 	//Depth calc stuff
 	int old_width_, old_height_;
-	cv::Matx33d cam_intrinsics;
+	Eigen::Matrix3f cam_intrinsics;
 
 	tf2_ros::Buffer *tf_buffer;
     tf2_ros::TransformListener *tf_listener;
 
-    tf2::Stamped<tf2::Transform> top_left_transform;
+    Eigen::Affine3f cam_pose[NUM_CAMERAS];
 
 	ros::Subscriber radius_sub;
     float tunnel_radius;
 
-	Eigen::Vector3d focal_plane_dir;
+	Eigen::Vector3f focal_plane_dir[NUM_CAMERAS];
 
-    cv::Point3d calcProjectionCameraFrame(int x, int y);
-    void unitVectorToPose(const std::string& frame, cv::Point3f vec, tf2::Stamped<tf2::Transform>& trans);
-    float calcDistance(tf2::Stamped<tf2::Transform>& vec, tf2::Stamped<tf2::Transform>& transform);
+    Eigen::Vector3f calcProjectionCameraFrame(int x, int y);
+    float calcDistance(Eigen::Vector3f &ray_direction, int cam);
 	
 	//Point Cloud processing
 	ros::Subscriber pointcloud_sub;

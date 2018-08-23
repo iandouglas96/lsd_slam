@@ -49,6 +49,8 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 
 	privateFrameAllocCount++;
 
+	tryRetrack = true;
+
 	if(enablePrintDebugInfo && printMemoryDebugInfo)
 		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
 }
@@ -62,6 +64,8 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 	data.imageValid[0] = true;
 
 	privateFrameAllocCount++;
+
+	tryRetrack = true;
 
 	if(enablePrintDebugInfo && printMemoryDebugInfo)
 		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
@@ -286,7 +290,7 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 	
 	data.idepthValid[0] = true;
 	data.idepthVarValid[0] = true;
-// 	data.refIDValid[0] = true;
+	// 	data.refIDValid[0] = true;
 	// Invalidate higher levels, they need to be updated with the new data
 	release(IDEPTH | IDEPTH_VAR, true, true);
 	data.hasIDepthBeenSet = true;

@@ -153,7 +153,7 @@ void KeyFrameGraphDisplay::addMsg(lsd_slam_viewer::keyframeMsgConstPtr msg)
 		keyframesByID[msg->id] = disp;
 		keyframes.push_back(disp);
 
-	//	printf("added new KF, now there are %d!\n", (int)keyframes.size());
+	//	printf("added new KF with id %d, now there are %d!\n",msg->id, (int)keyframes.size());
 	}
 
 	keyframesByID[msg->id]->setFrom(msg);

@@ -23,6 +23,8 @@
 #include <ros/ros.h>
 #include "util/settings.h"
 
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include "std_msgs/Float32MultiArray.h"
 #include "lsd_slam_viewer/keyframeGraphMsg.h"
@@ -32,6 +34,7 @@
 #include "GlobalMapping/KeyFrameGraph.h"
 #include "sophus/sim3.hpp"
 #include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/TransformStamped.h"
 #include <tf2_eigen/tf2_eigen.h>
 #include "GlobalMapping/g2oTypeSE3Sophus.h"
 #include <Eigen/Dense>
@@ -92,23 +95,28 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	fMsg.width = w;
 	fMsg.height = h;
 
+	//If we have the pointcloud, publish it
+	
+	if (f->hasIDepthBeenSet() && publishPointcloud) {
+		fMsg.pointcloud.resize(w*h*sizeof(InputPointDense));
 
-	fMsg.pointcloud.resize(w*h*sizeof(InputPointDense));
+		InputPointDense* pc = (InputPointDense*)fMsg.pointcloud.data();
 
-	InputPointDense* pc = (InputPointDense*)fMsg.pointcloud.data();
+		const float* idepth = f->idepth(publishLvl);
+		const float* idepthVar = f->idepthVar(publishLvl);
+		const float* color = f->image(publishLvl);
 
-	const float* idepth = f->idepth(publishLvl);
-	const float* idepthVar = f->idepthVar(publishLvl);
-	const float* color = f->image(publishLvl);
-
-	for(int idx=0;idx < w*h; idx++)
-	{
-		pc[idx].idepth = idepth[idx];
-		pc[idx].idepth_var = idepthVar[idx];
-		pc[idx].color[0] = color[idx];
-		pc[idx].color[1] = color[idx];
-		pc[idx].color[2] = color[idx];
-		pc[idx].color[3] = color[idx];
+		for(int idx=0;idx < w*h; idx++)
+		{
+			pc[idx].idepth = idepth[idx];
+			pc[idx].idepth_var = idepthVar[idx];
+			pc[idx].color[0] = color[idx];
+			pc[idx].color[1] = color[idx];
+			pc[idx].color[2] = color[idx];
+			pc[idx].color[3] = color[idx];
+		}
+	} else {
+		fMsg.pointcloud.resize(0);
 	}
 
 	//load image and reference data
@@ -122,10 +130,10 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	keyframe_publisher.publish(fMsg);
 }
 
-void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf)
+void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf, int cam)
 {
+	//Regular message publisher (for viewer)
 	lsd_slam_viewer::keyframeMsg fMsg;
-
 
 	fMsg.id = kf->id();
 	fMsg.time = kf->timestamp();
@@ -168,6 +176,24 @@ void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf)
 	pMsg.header.stamp = ros::Time(kf->timestamp());
 	pMsg.header.frame_id = "world";
 	pose_publisher.publish(pMsg);
+
+	//tf publisher (for rviz)
+	SE3 worldToCam = (kf->getScaledCamToWorld().inverse());
+	static tf2_ros::TransformBroadcaster tf_br;
+	geometry_msgs::TransformStamped transformStamped;
+  
+	transformStamped.header.stamp = ros::Time::now();
+	transformStamped.header.frame_id = camera_names[cam];
+	transformStamped.child_frame_id = "takeoff_top_left";
+	transformStamped.transform.translation.x = worldToCam.translation()[0];
+	transformStamped.transform.translation.y = worldToCam.translation()[1];
+	transformStamped.transform.translation.z = worldToCam.translation()[2];
+	transformStamped.transform.rotation.x = worldToCam.so3().unit_quaternion().x();
+	transformStamped.transform.rotation.y = worldToCam.so3().unit_quaternion().y();
+	transformStamped.transform.rotation.z = worldToCam.so3().unit_quaternion().z();
+	transformStamped.transform.rotation.w = worldToCam.so3().unit_quaternion().w();
+
+	tf_br.sendTransform(transformStamped);
 }
 
 

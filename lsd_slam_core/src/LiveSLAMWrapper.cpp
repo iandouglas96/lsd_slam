@@ -64,7 +64,8 @@ LiveSLAMWrapper::LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper*
 
 
 	// make Odometry
-	monoOdometry = new SlamSystem(width, height, K_sophus, doSlam);
+	initialCamera = 0;
+	monoOdometry = new SlamSystem(width, height, K_sophus, doSlam, initialCamera);
 
 	monoOdometry->setVisualization(outputWrapper);
 	monoOdometry->setLidarDepth(((ROSImageStreamThread*)imageStream));
@@ -103,19 +104,15 @@ void LiveSLAMWrapper::Loop()
 				continue;
 		}
 		
-		TimestampedMat image = imageStream->getBuffer()->first();
+		TimestampedMultiMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
-		
-		//This is clunky, probably should handle differently
-		//ROS_INFO("%f", ((ROSImageStreamThread*)imageStream)->getDepth(500,500));
 
 		// process image
-		Util::displayImage("Undist image", image.data);
 		newImageCallback(image.data, image.timestamp);
 
 		Util::displayThreadLoop();
 
-		int key = cv::waitKey(30) & 255; // key is an integer here
+		int key = cv::waitKey(1) & 255; // key is an integer here
 		if (key == 27) {
 			printf("Quitting...");
 			break;            // break when `esc' key is pressed
@@ -124,21 +121,26 @@ void LiveSLAMWrapper::Loop()
 }
 
 
-void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
+void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp imgTime)
 {
 	++ imageSeqNumber;
 
-	// Convert image to grayscale, if necessary
-	cv::Mat grayImg;
-	if (img.channels() == 1)
-		grayImg = img;
-	else
-		cvtColor(img, grayImg, CV_RGB2GRAY);
-	
+	cv::Mat grayImg[NUM_CAMERAS];
+	uchar* imagePtrs[NUM_CAMERAS];
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		// Convert image to grayscale, if necessary
+		if (img[i].channels() == 1)
+			grayImg[i] = img[i];
+		else
+			cvtColor(img[i], grayImg[i], CV_RGB2GRAY);
+		
 
-	// Assert that we work with 8 bit images
-	assert(grayImg.elemSize() == 1);
-	assert(fx != 0 || fy != 0);
+		// Assert that we work with 8 bit images
+		assert(grayImg[i].elemSize() == 1);
+		assert(fx != 0 || fy != 0);
+
+		imagePtrs[i] = grayImg[i].data;
+	}
 
 
 	// need to initialize
@@ -152,17 +154,27 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 		float depth[width*height];
 		for (int x=0; x<width; x++) {
 			for (int y=0; y<height; y++) {
-				depth[x+y*width] = ((ROSImageStreamThread*)imageStream)->getDepth(x,y);
+				depth[x+y*width] = ((ROSImageStreamThread*)imageStream)->getDepth(x,y,initialCamera);
 			}
 		}
-
 		//monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
-		monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+		monoOdometry->gtDepthInit(imagePtrs, depth, imgTime.toSec(), 1);
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)
 	{
-		monoOdometry->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec(),((ROSImageStreamThread*)imageStream)->getTransform(), ((ROSImageStreamThread*)imageStream)->getRadius());
+		struct timeval tv_start, tv_end;
+		gettimeofday(&tv_start, NULL);
+		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec());
+		gettimeofday(&tv_end, NULL);
+		if(enablePrintDebugInfo && printOverallTiming) {
+			float msTrack = ((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
+			printf("Tracking function: %fms\n", msTrack);
+		}
+		/*if (imageSeqNumber == 40) {
+			std::cout << "Switiching Cameras!\n";
+			monoOdometry->switchCameras(2);
+		}*/
 	}
 }
 

@@ -46,6 +46,7 @@ class SE3Tracker;
 class Sim3Tracker;
 class DepthMap;
 class Frame;
+class FrameSet;
 class DataSet;
 class LiveSLAMWrapper;
 class Output3DWrapper;
@@ -71,13 +72,13 @@ public:
 	bool trackingIsGood;
 
 
-	SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM = true);
+	SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM = true, int initialCam = 0);
 	SlamSystem(const SlamSystem&) = delete;
 	SlamSystem& operator=(const SlamSystem&) = delete;
 	~SlamSystem();
 
-	void randomInit(uchar* image, double timeStamp, int id);
-	void gtDepthInit(uchar* image, float* depth, double timeStamp, int id);
+	void randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id);
+	void gtDepthInit(uchar* image[NUM_CAMERAS], float* depth, double timeStamp, int id);
 
 	
 
@@ -85,7 +86,7 @@ public:
 	// first frame will return Identity = camToWord.
 	// returns camToWord transformation of the tracked frame.
 	// frameID needs to be monotonically increasing.
-	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp, SE3NoX tunnelOrient, float tunnelRadius);
+	void trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp);
 
 	// finalizes the system, i.e. blocks and does all remaining loop-closures etc.
 	void finalize();
@@ -131,7 +132,6 @@ private:
 	SE3Tracker* tracker;
 
 
-
 	// ============= EXCLUSIVELY MAPPING THREAD (+ init) =============
 	DepthMap* map;
 	TrackingReference* mappingTrackingReference;
@@ -161,6 +161,9 @@ private:
 	bool doFinalOptimization;
 	float lastTrackingClosenessScore;
 
+	boost::shared_mutex currentCameraMutex;
+	int currentCamera, nextCamera;
+
 	// for sequential operation. Set in Mapping, read in Tracking.
 	boost::condition_variable  newFrameMappedSignal;
 	boost::mutex newFrameMappedMutex;
@@ -181,14 +184,14 @@ private:
 	// Tracking: if (!create) set candidate, set create.
 	// Mapping: if (create) use candidate, reset create.
 	// => no locking required.
+	boost::shared_mutex latestTrackedFrameMutex;
 	std::shared_ptr<Frame> latestTrackedFrame;
+	std::array<std::shared_ptr<Frame>, NUM_CAMERAS> latestTrackedImageArr, currentKeyFrameImageArr;
 	bool createNewKeyFrame;
 
 	SE3NoX newCrossSectionPose, oldCrossSectionPose;
 	bool haveCrossSectionPoses;
 	Frame* firstKeyFrame;
-
-
 
 	// PUSHED in tracking, READ & CLEARED in mapping
 	std::deque< std::shared_ptr<Frame> > unmappedTrackedFrames;
@@ -254,6 +257,8 @@ private:
 
 
 	bool updateKeyframe();
+
+	void switchCameras(int newCam);
 
 	void addTimingSamples();
 

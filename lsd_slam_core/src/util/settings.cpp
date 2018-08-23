@@ -65,10 +65,13 @@ bool printThreadingInfo = false;
 bool printMappingTiming = false;
 bool printOverallTiming = false;
 
+bool printInterestLevel = false;
+
 bool plotTrackingIterationInfo = true;
 bool plotSim3TrackingIterationInfo = false;
 bool plotStereoImages = false;
 bool plotTracking = true;
+bool publishPointcloud = false;
 
 
 float freeDebugParam1 = 1;
@@ -83,6 +86,8 @@ float KFUsageWeight = 10;
 float minUseGrad = 20;
 float cameraPixelNoise2 = 5*5;
 float depthSmoothingFactor = 1;
+
+float cameraSwitchInterestLevel = 55000/(1080*1280);
 
 int maskBrightnessLimit = 256; //256 is off
 bool maskRectangle = false;

@@ -156,16 +156,21 @@ namespace lsd_slam
 
 
 
-#define MAX_DIFF_CONSTANT (40.0f*40.0f)
+#define MAX_DIFF_CONSTANT (50.0f*50.0f)
 #define MAX_DIFF_GRAD_MULT (0.5f*0.5f)
 
 #define MIN_GOODPERGOODBAD_PIXEL (0.5f)
-#define MIN_GOODPERALL_PIXEL (0.04f)
+#define MIN_GOODPERALL_PIXEL (0.02f)
 #define MIN_GOODPERALL_PIXEL_ABSMIN (0.01f)
 
 #define INITIALIZATION_PHASE_COUNT 5
 
 #define MIN_NUM_MAPPED 5
+
+//Multicamera settings
+#define NUM_CAMERAS 1
+
+const std::string camera_names[NUM_CAMERAS] = {"cam_top_left"/*, "cam_top_right", "cam_bottom_left", "cam_bottom_right"*/};
 
 // settings variables
 // controlled via keystrokes
@@ -201,12 +206,15 @@ extern bool printRelocalizationInfo;
 extern bool printFrameBuildDebugInfo;
 extern bool printMemoryDebugInfo;
 
+extern bool printInterestLevel;
+
 extern bool printMappingTiming;
 extern bool printOverallTiming;
 extern bool plotTrackingIterationInfo;
 extern bool plotSim3TrackingIterationInfo;
 extern bool plotStereoImages;
 extern bool plotTracking;
+extern bool publishPointcloud;
 
 
 extern bool allowNegativeIdepths;
@@ -248,6 +256,8 @@ extern bool fillDepthHoles;
 extern float minUseGrad;
 extern float cameraPixelNoise2;
 extern float depthSmoothingFactor;
+
+extern float cameraSwitchInterestLevel;
 
 extern bool useFabMap;
 extern bool doSlam;

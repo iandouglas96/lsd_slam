@@ -670,8 +670,6 @@ void DepthMap::updateMapWithLidar(DepthMapPixelHypothesis* original)
 {
 	DepthMapPixelHypothesis* currDepth;
 	DepthMapPixelHypothesis* lidarDepth;
-	double diff = 0;
-	double cnt = 0;
 	for (int i=0; i<width*height; i++) {
 		currDepth = original + i;
 		lidarDepth = lidarDepthMap + i;
@@ -680,11 +678,6 @@ void DepthMap::updateMapWithLidar(DepthMapPixelHypothesis* original)
 			float idepth_cov_lidar = lidarDepthCovariance*lidarDepth->idepth*lidarDepth->idepth;
 
 			if (currDepth->isValid) {
-				if (currDepth->idepth > 0){
-					diff += lidarDepth->idepth / currDepth->idepth;
-					cnt++;
-				}
-
 				// merge idepth ekf-style
 				float w = idepth_cov_lidar / (currDepth->idepth_var + idepth_cov_lidar);
 				float merged_new_idepth = w*currDepth->idepth + (1.0f-w)*lidarDepth->idepth;
@@ -703,8 +696,6 @@ void DepthMap::updateMapWithLidar(DepthMapPixelHypothesis* original)
 		}
 		
 	}
-	
-	diff /= cnt;
 
 	//printf("scale error: %f, cnt: %f\n", diff, cnt);
 }
@@ -1032,28 +1023,17 @@ void DepthMap::initializeFromGTDepth(Frame* new_frame)
 
 	float averageGTIDepthSum = 0;
 	int averageGTIDepthNum = 0;
+	float idepthValue;
 	for(int y=0;y<height;y++)
 	{
 		for(int x=0;x<width;x++)
 		{
-			float idepthValue = idepth[x+y*width];
+			idepthValue = idepth[x+y*width];
 			if(!isnanf(idepthValue) && idepthValue > 0)
 			{
 				averageGTIDepthSum += idepthValue;
 				averageGTIDepthNum ++;
-			}
-		}
-	}
-	
 
-	for(int y=0;y<height;y++)
-	{
-		for(int x=0;x<width;x++)
-		{
-			float idepthValue = idepth[x+y*width];
-			
-			if(!isnanf(idepthValue) && idepthValue > 0)
-			{
 				currentDepthMap[x+y*width] = DepthMapPixelHypothesis(
 						idepthValue,
 						idepthValue,
@@ -1068,7 +1048,6 @@ void DepthMap::initializeFromGTDepth(Frame* new_frame)
 			}
 		}
 	}
-
 
 	activeKeyFrame->setDepth(currentDepthMap);
 }
@@ -1275,15 +1254,17 @@ void DepthMap::invalidate()
 	activeKeyFramelock.unlock();
 }
 
-void DepthMap::setLidarDepth(ROSImageStreamThread *depth)
+void DepthMap::setLidarDepth(ROSImageStreamThread *depth, int currentCam)
 {
 	//std::cout << "Got LIDAR data\n";
+	struct timeval tv_start, tv_end;
+	gettimeofday(&tv_start, NULL);
 
 	float id;
 
-	for(int y=0;y<height;y++) {
-		for(int x=0;x<width;x++) {
-			id = 1/depth->getDepth(x,y);
+	for(int y=0;y<height;y+=2) {
+		for(int x=0;x<width;x+=2) {
+			id = 1/depth->getDepth(x,y,currentCam);
 			DepthMapPixelHypothesis* pix = lidarDepthMap + x + y*width;
 			if (id > 0) { //valid
 				pix->idepth = id;
@@ -1294,6 +1275,10 @@ void DepthMap::setLidarDepth(ROSImageStreamThread *depth)
 			}
 		}
 	}
+
+	gettimeofday(&tv_end, NULL);
+	float ms = ((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
+	printf("Load lidar data: %fms\n", ms);
 }
 
 void DepthMap::createKeyFrame(Frame* new_keyframe)

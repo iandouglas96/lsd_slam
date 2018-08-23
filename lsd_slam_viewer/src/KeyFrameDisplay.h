@@ -60,7 +60,6 @@ public:
 	void drawCam(float lineWidth = 1, float* color = 0);
 	void drawPC(float pointSize = 1, float alpha = 1);
 	void drawCylinder();
-	void drawCylinderSegment();
 	void drawCylinderSegmentHD();
 	void refreshPC();
 
@@ -83,9 +82,6 @@ private:
 	void loadTexture();
 	Eigen::Vector3f calcProjectionCameraFrame(float x, float y);
 	float calcDistance(Eigen::Vector3f &ray_direction);
-
-	Eigen::Vector2f getLeftIntercept(float dist, float angle);
-	Eigen::Vector2f getRightIntercept(float dist, float angle);
 
 	// camera parameter
 	// fixed.

@@ -44,6 +44,7 @@ void dynConfCbDebug(lsd_slam_core::LSDDebugParamsConfig &config, uint32_t level)
 	plotStereoImages = config.plotStereoImages;
 	plotTrackingIterationInfo = config.plotTrackingIterationInfo;
 	plotTracking = config.plotTracking;
+	publishPointcloud = config.publishPointcloud;
 
 	printPropagationStatistics = config.printPropagationStatistics;
 	printFillHolesStatistics = config.printFillHolesStatistics;
@@ -66,6 +67,8 @@ void dynConfCbDebug(lsd_slam_core::LSDDebugParamsConfig &config, uint32_t level)
 	printConstraintSearchInfo = config.printConstraintSearchInfo;
 	printOptimizationInfo = config.printOptimizationInfo;
 	printRelocalizationInfo = config.printRelocalizationInfo;
+
+	printInterestLevel = config.printInterestLevel;
 
 
 	//continuousPCOutput = config.continuousPCOutput;
@@ -90,6 +93,8 @@ void dynConfCb(lsd_slam_core::LSDParamsConfig &config, uint32_t level)
 	minUseGrad = config.minUseGrad;
 	cameraPixelNoise2 = config.cameraPixelNoise*config.cameraPixelNoise;
 	depthSmoothingFactor = config.depthSmoothingFactor;
+
+	cameraSwitchInterestLevel = config.cameraSwitchInterestLevel;
 
 	maskBrightnessLimit = config.maskBrightnessLimit; //256 is off
 	maskRectangle = config.maskRectangle;
