@@ -305,14 +305,23 @@ SE3 D1Tracker::trackFrame(
 	}
 
 	//Calculate motion constraints from cross section data
-	Sophus::SE3d to = frame->tunnelPose().transform();
-	Sophus::SE3d from = frame->tunnelPose().transform();
-	Sophus::SE3d trans = from.inverse()*to;
+	Sophus::SE3f to = frame->tunnelPose().transform().cast<float>();
+	Sophus::SE3f from = reference->keyframe->tunnelPose().transform().cast<float>();
+	Sophus::SE3f trans = from.inverse()*to;
 	//Get tunnel axis in robot frame
-	Eigen::Vector3d dir = from.inverse().rotationMatrix()*Eigen::Vector3d(1,0,0);
+	Eigen::Vector3f dir = from.inverse().rotationMatrix()*Eigen::Vector3f(1,0,0);
 
 	// ============ track frame ============
 	Sophus::SE3f referenceToFrame = frameToReference_initialEstimate.inverse().cast<float>();
+	std::cout << "orig: \n" << referenceToFrame.matrix() << "\n";
+	//Fit prediction to cross section constraints
+	referenceToFrame = trans.inverse()*referenceToFrame;
+	float axis_dist = referenceToFrame.translation().dot(dir);
+	std::cout << "axis dist: " << axis_dist << "\n";
+	referenceToFrame = trans;
+	referenceToFrame.translation() += dir*axis_dist;
+	std::cout << "new: \n" << referenceToFrame.matrix() << "\n";
+	
 	LGS6 ls;
 
 

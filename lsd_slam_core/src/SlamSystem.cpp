@@ -21,6 +21,7 @@
 #include "SlamSystem.h"
 
 #include "DataStructures/Frame.h"
+#include "Tracking/D1Tracker.h"
 #include "Tracking/SE3Tracker.h"
 #include "Tracking/SE3DepthTracker.h"
 #include "DepthEstimation/DepthMap.h"
@@ -79,7 +80,7 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM, int ini
 	currentCamera = initialCam;
 	nextCamera = currentCamera;
 
-	tracker = new SE3Tracker(w,h,K);
+	tracker = new D1Tracker(w,h,K);
 	// Do not use more than 4 levels for odometry tracking
 	for (int level = 4; level < PYRAMID_LEVELS; ++level)
 		tracker->settings.maxItsPerLvl[level] = 0;
@@ -887,6 +888,8 @@ void SlamSystem::gtDepthInit(uchar* image[NUM_CAMERAS], float* depth, double tim
 			currentKeyFrameImageArr[i]->pose->trackingParent = currentKeyFrameImageArr[currentCamera]->pose;
 			currentKeyFrameImageArr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
 		}
+		SE3NoX tunnel_pose = lidarDepth->getTransformFromTunnel(i);
+		currentKeyFrameImageArr[i]->setTunnelInfo(tunnel_pose, lidarDepth->getRadius());
 	}
 
 	std::shared_ptr<FrameSet> fs(new FrameSet(currentKeyFrameImageArr));

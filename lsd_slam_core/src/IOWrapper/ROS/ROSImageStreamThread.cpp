@@ -327,6 +327,7 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
 			   					 const sensor_msgs::ImageConstPtr bottom_right_img)
 {
 	if(!haveCalib) return;
+	if(use_tunnel_estimator && tunnel_radius == 0) return;
 	struct timeval tv_start, tv_end;
 	gettimeofday(&tv_start, NULL);
 

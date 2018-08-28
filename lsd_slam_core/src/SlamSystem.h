@@ -42,6 +42,7 @@ namespace lsd_slam
 
 class TrackingReference;
 class KeyFrameGraph;
+class D1Tracker;
 class SE3Tracker;
 class Sim3Tracker;
 class DepthMap;
@@ -129,7 +130,7 @@ private:
 
 	// ============= EXCLUSIVELY TRACKING THREAD (+ init) ===============
 	TrackingReference* trackingReference; // tracking reference for current keyframe. only used by tracking.
-	SE3Tracker* tracker;
+	D1Tracker* tracker;
 
 
 	// ============= EXCLUSIVELY MAPPING THREAD (+ init) =============
