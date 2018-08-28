@@ -55,15 +55,15 @@ ROSImageStreamThread::ROSImageStreamThread()
 
 	// subscribe
 	top_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_left_image"), 1);
-	/*top_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_right_image"), 1);
+	top_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_right_image"), 1);
 	bottom_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_left_image"), 1);
 	bottom_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_right_image"), 1);
 
 	image_sub = new message_filters::Synchronizer<SynchPolicy>(SynchPolicy(5),
 		*top_left_sub, *top_right_sub, *bottom_left_sub, *bottom_right_sub);
 
-	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));*/
-	top_left_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1));
+	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));
+	//top_left_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1));
 
 	pointcloud_sub = nh_.subscribe(nh_.resolveName("pointcloud"), 1, &ROSImageStreamThread::pointCloudCb, this);
 	std::string radius_channel = nh_.resolveName("local_tunnel_radius");
@@ -321,10 +321,10 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 	haveDepthMap = true;
 }
 
-void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img/*,
+void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
 			   					 const sensor_msgs::ImageConstPtr top_right_img, 
 			   					 const sensor_msgs::ImageConstPtr bottom_left_img, 
-			   					 const sensor_msgs::ImageConstPtr bottom_right_img*/)
+			   					 const sensor_msgs::ImageConstPtr bottom_right_img)
 {
 	if(!haveCalib) return;
 	struct timeval tv_start, tv_end;
@@ -332,9 +332,9 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img/*
 
 	cv_bridge::CvImagePtr cv_ptr[NUM_CAMERAS];
 	cv_ptr[0] = cv_bridge::toCvCopy(top_left_img, sensor_msgs::image_encodings::MONO8);
-	/*cv_ptr[1] = cv_bridge::toCvCopy(top_right_img, sensor_msgs::image_encodings::MONO8);
+	cv_ptr[1] = cv_bridge::toCvCopy(top_right_img, sensor_msgs::image_encodings::MONO8);
 	cv_ptr[2] = cv_bridge::toCvCopy(bottom_left_img, sensor_msgs::image_encodings::MONO8);
-	cv_ptr[3] = cv_bridge::toCvCopy(bottom_right_img, sensor_msgs::image_encodings::MONO8);*/
+	cv_ptr[3] = cv_bridge::toCvCopy(bottom_right_img, sensor_msgs::image_encodings::MONO8);
 
 	if(top_left_img->header.seq < (unsigned int)lastSEQ)
 	{
@@ -351,6 +351,21 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img/*
 		bufferItem.timestamp =  Timestamp(ros::Time::now().toSec());
 
 	for (int i=0; i<NUM_CAMERAS; i++) {
+		//Load current camera transform to be synchronized with video
+		tf2::Stamped<tf2::Transform> transform;
+    	tf2::convert(tf_buffer->lookupTransform("center_cylinder", camera_names[i], ros::Time(0), ros::Duration(1.0)), transform);
+		//Convert to Eigen
+		Eigen::Quaterniond quat;
+		Eigen::Vector3f trans(transform.getOrigin().getX(), transform.getOrigin().getY(), transform.getOrigin().getZ());
+		tf2::convert(transform.getRotation(), quat);
+		cam_pose[i].linear() = quat.toRotationMatrix().cast<float>();
+		cam_pose[i].translation() = trans;
+
+		//Find the normal vector of the focal plane
+		Eigen::Vector3f cam_pt = calcProjectionCameraFrame((width_)/2, (height_)/2);
+		//printf("%f, %f, %f\n", cam_pt.x, cam_pt.y, cam_pt.z);
+		focal_plane_dir[i] = cam_pose[i].linear()*cam_pt;
+
 		if(undistorter[i] != 0)
 		{
 			assert(undistorter[i]->isValid());
@@ -439,25 +454,6 @@ void ROSImageStreamThread::radiusCb(const std_msgs::Float64::ConstPtr& msg)
     tunnel_radius = msg->data;
 
 	//ROS_INFO("%f", this->tunnel_radius);
-
-	for (int i=0; i<NUM_CAMERAS; i++) {
-		//Load current camera transform while we are at it
-		tf2::Stamped<tf2::Transform> transform;
-    	tf2::convert(tf_buffer->lookupTransform("center_cylinder", camera_names[i], ros::Time(0), ros::Duration(1.0)), transform);
-		//Convert to Eigen
-		Eigen::Quaterniond quat;
-		Eigen::Vector3f trans(transform.getOrigin().getX(), transform.getOrigin().getY(), transform.getOrigin().getZ());
-		tf2::convert(transform.getRotation(), quat);
-		cam_pose[i].linear() = quat.toRotationMatrix().cast<float>();
-		cam_pose[i].translation() = trans;
-
-		//Find the normal vector of the focal plane
-		Eigen::Vector3f cam_pt = calcProjectionCameraFrame((width_)/2, (height_)/2);
-		//printf("%f, %f, %f\n", cam_pt.x, cam_pt.y, cam_pt.z);
-
-		focal_plane_dir[i] = cam_pose[i].linear()*cam_pt;
-	}
-
 	haveDepthMap = true;
 }
 

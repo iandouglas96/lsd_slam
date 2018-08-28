@@ -54,7 +54,9 @@ catkin_package(
 
 # SSE flags
 add_definitions("-DUSE_ROS")
-add_definitions("-DENABLE_SSE")
+#SSE does somewhat improve tracking performance
+#disable until tracking ported to use SSE
+#add_definitions("-DENABLE_SSE")
 add_definitions(${PCL_DEFINITIONS})
 
 # Also add some useful compiler flag
@@ -86,6 +88,7 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/Tracking/Sim3Tracker.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/Relocalizer.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/SE3Tracker.cpp
+  ${PROJECT_SOURCE_DIR}/src/Tracking/D1Tracker.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/SE3DepthTracker.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/TrackingReference.cpp
   ${PROJECT_SOURCE_DIR}/src/IOWrapper/Timestamp.cpp

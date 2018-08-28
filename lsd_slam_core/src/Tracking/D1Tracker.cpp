@@ -18,7 +18,7 @@
 * along with LSD-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "SE3Tracker.h"
+#include "D1Tracker.h"
 #include <opencv2/highgui/highgui.hpp>
 #include "DataStructures/Frame.h"
 #include "Tracking/TrackingReference.h"
@@ -43,7 +43,7 @@ namespace lsd_slam
 #endif
 
 
-SE3Tracker::SE3Tracker(int w, int h, Eigen::Matrix3f K)
+D1Tracker::D1Tracker(int w, int h, Eigen::Matrix3f K)
 {
 	width = w;
 	height = h;
@@ -93,7 +93,7 @@ SE3Tracker::SE3Tracker(int w, int h, Eigen::Matrix3f K)
 	diverged = false;
 }
 
-SE3Tracker::~SE3Tracker()
+D1Tracker::~D1Tracker()
 {
 	debugImageResiduals.release();
 	debugImageWeights.release();
@@ -118,7 +118,7 @@ SE3Tracker::~SE3Tracker()
 
 // tracks a frame.
 // first_frame has depth, second_frame DOES NOT have depth.
-float SE3Tracker::checkPermaRefOverlap(
+float D1Tracker::checkPermaRefOverlap(
 		Frame* reference,
 		SE3 referenceToFrameOrg)
 {
@@ -159,7 +159,7 @@ float SE3Tracker::checkPermaRefOverlap(
 
 // tracks a frame.
 // first_frame has depth, second_frame DOES NOT have depth.
-SE3 SE3Tracker::trackFrameOnPermaref(
+SE3 D1Tracker::trackFrameOnPermaref(
 		Frame* reference,
 		Frame* frame,
 		SE3 referenceToFrameOrg)
@@ -279,7 +279,7 @@ SE3 SE3Tracker::trackFrameOnPermaref(
 
 // tracks a frame.
 // first_frame has depth, second_frame DOES NOT have depth.
-SE3 SE3Tracker::trackFrame(
+SE3 D1Tracker::trackFrame(
 		TrackingReference* reference,
 		Frame* frame,
 		const SE3& frameToReference_initialEstimate)
@@ -303,6 +303,13 @@ SE3 SE3Tracker::trackFrame(
 			for (int col = 0; col < width; ++ col)
 				setPixelInCvMat(&debugImageSecondFrame,getGrayCvPixel(frameImage[col+row*width]), col, row, 1);
 	}
+
+	//Calculate motion constraints from cross section data
+	Sophus::SE3d to = frame->tunnelPose().transform();
+	Sophus::SE3d from = frame->tunnelPose().transform();
+	Sophus::SE3d trans = from.inverse()*to;
+	//Get tunnel axis in robot frame
+	Eigen::Vector3d dir = from.inverse().rotationMatrix()*Eigen::Vector3d(1,0,0);
 
 	// ============ track frame ============
 	Sophus::SE3f referenceToFrame = frameToReference_initialEstimate.inverse().cast<float>();
@@ -493,7 +500,7 @@ SE3 SE3Tracker::trackFrame(
 
 
 #if defined(ENABLE_SSE)
-float SE3Tracker::calcWeightsAndResidualSSE(
+float D1Tracker::calcWeightsAndResidualSSE(
 		const Sophus::SE3f& referenceToFrame)
 {
 	const __m128 txs = _mm_set1_ps((float)(referenceToFrame.translation()[0]));
@@ -582,7 +589,7 @@ float SE3Tracker::calcWeightsAndResidualSSE(
 
 
 #if defined(ENABLE_NEON)
-float SE3Tracker::calcWeightsAndResidualNEON(
+float D1Tracker::calcWeightsAndResidualNEON(
 		const Sophus::SE3f& referenceToFrame)
 {
 	float tx = referenceToFrame.translation()[0];
@@ -750,7 +757,7 @@ float SE3Tracker::calcWeightsAndResidualNEON(
 }
 #endif
 
-float SE3Tracker::calcWeightsAndResidual(
+float D1Tracker::calcWeightsAndResidual(
 		const Sophus::SE3f& referenceToFrame)
 {
 	float tx = referenceToFrame.translation()[0];
@@ -794,7 +801,7 @@ float SE3Tracker::calcWeightsAndResidual(
 }
 
 
-void SE3Tracker::calcResidualAndBuffers_debugStart()
+void D1Tracker::calcResidualAndBuffers_debugStart()
 {
 	if(plotTrackingIterationInfo || saveAllTrackingStagesInternal)
 	{
@@ -806,7 +813,7 @@ void SE3Tracker::calcResidualAndBuffers_debugStart()
 	}
 }
 
-void SE3Tracker::calcResidualAndBuffers_debugFinish(int w)
+void D1Tracker::calcResidualAndBuffers_debugFinish(int w)
 {
 	if(plotTrackingIterationInfo)
 	{
@@ -856,7 +863,7 @@ void SE3Tracker::calcResidualAndBuffers_debugFinish(int w)
 }
 
 #if defined(ENABLE_SSE)
-float SE3Tracker::calcResidualAndBuffersSSE(
+float D1Tracker::calcResidualAndBuffersSSE(
 		const Eigen::Vector3f* refPoint,
 		const Eigen::Vector2f* refColVar,
 		int* idxBuf,
@@ -871,7 +878,7 @@ float SE3Tracker::calcResidualAndBuffersSSE(
 #endif
 
 #if defined(ENABLE_NEON)
-float SE3Tracker::calcResidualAndBuffersNEON(
+float D1Tracker::calcResidualAndBuffersNEON(
 		const Eigen::Vector3f* refPoint,
 		const Eigen::Vector2f* refColVar,
 		int* idxBuf,
@@ -886,7 +893,7 @@ float SE3Tracker::calcResidualAndBuffersNEON(
 #endif
 
 
-float SE3Tracker::calcResidualAndBuffers(
+float D1Tracker::calcResidualAndBuffers(
 		const Eigen::Vector3f* refPoint, //Reference point cloud
 		const Eigen::Vector2f* refColVar, //Reference pixel values
 		int* idxBuf,
@@ -1051,7 +1058,7 @@ float SE3Tracker::calcResidualAndBuffers(
 
 
 #if defined(ENABLE_SSE)
-void SE3Tracker::calculateWarpUpdateSSE(
+void D1Tracker::calculateWarpUpdateSSE(
 		LGS6 &ls)
 {
 	ls.initialize(width*height);
@@ -1153,7 +1160,7 @@ void SE3Tracker::calculateWarpUpdateSSE(
 
 
 #if defined(ENABLE_NEON)
-void SE3Tracker::calculateWarpUpdateNEON(
+void D1Tracker::calculateWarpUpdateNEON(
 		LGS6 &ls)
 {
 //	weightEstimator.reset();
@@ -1276,7 +1283,7 @@ void SE3Tracker::calculateWarpUpdateNEON(
 #endif
 
 
-void SE3Tracker::calculateWarpUpdate(
+void D1Tracker::calculateWarpUpdate(
 		LGS6 &ls)
 {
 //	weightEstimator.reset();
