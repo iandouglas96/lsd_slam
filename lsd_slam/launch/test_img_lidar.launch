@@ -6,12 +6,12 @@
   <!--arg name="bagfile_path" value="/media/ian/ExtHDD/InspectionData/outdoors_datasets/outdoors_image_lidar_asphalt_2018-07-27-11-10-34.bag"/>
   <node pkg="rosbag" name="play" type="play" output="screen" args="++quiet $(arg bagfile_path) ++rate=0.1 ++start=5 ++clock"/-->
 
-  <!-- Run in realtime -->
+  <!-- Run in realtime >
   <include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>
 
   <include file="$(find flea3)/launch/single_node.launch">
     <arg name="device" value="16401219"/>
-  </include>
+  </include-->
   
   <node pkg="image_proc" type="image_proc" name="image_proc">
     <remap from="image_raw" to="/pg_16401219/image_raw"/>
@@ -32,5 +32,5 @@
   </node>
 
   <!-- Pointcloud viewer for LSD SLAM -->
-  <node name="viewer" pkg="lsd_slam_viewer" type="viewer" output="screen"/>
+  <!--node name="viewer" pkg="lsd_slam_viewer" type="viewer" output="screen"/-->
 </launch>

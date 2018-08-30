@@ -137,18 +137,18 @@ class SE3NoX {
 		SE3NoX(Eigen::Matrix3d &rot, Eigen::Vector2d &trans) 
 		{
 			_transform.setRotationMatrix(rot);
-            _transform.translation() = Eigen::Vector3d(trans[0], 0, trans[1]);
+            _transform.translation() = Eigen::Vector3d(0, trans[0], trans[1]);
 		}
 
 		SE3NoX(Eigen::Quaterniond &quat, Eigen::Vector2d &trans) 
 		{
 			_transform.setQuaternion(quat);
-			_transform.translation() = Eigen::Vector3d(trans[0], 0, trans[1]);
+			_transform.translation() = Eigen::Vector3d(0, trans[0], trans[1]);
 		}
 
 		SE3NoX(double roll, double pitch, double yaw, double y, double z) 
 		{
-            _transform.translation() = Eigen::Vector3d(y,0,z);
+            _transform.translation() = Eigen::Vector3d(0,y,z);
             _transform.setQuaternion(rpyToQuat(roll,pitch,yaw));
 		}
 
