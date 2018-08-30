@@ -175,7 +175,40 @@ private:
   EIGEN_ALIGN16 float SSEData[4*15];
 };
 
+// 1D accumulator
+class LGS1
+{
+public:
+	float A;
+	float b;
 
+	float error;
+	size_t num_constraints;
+
+	inline void initialize(const size_t maxnum_constraints)
+	{
+		A = 0;
+		b = 0;
+		//memset(SSEData,0, sizeof(float)*4*28);
+		error = 0;
+		this->num_constraints = 0;
+	}
+
+	void finish()
+	{
+		A /= (float) num_constraints;
+		b /= (float) num_constraints;
+		error /= (float) num_constraints;
+	}
+
+	inline void update(const float& J, const float& res, const float& weight)
+	{
+		A += J * J * weight;
+		b -= J * (res * weight);
+		error += res * res * weight;
+		num_constraints += 1;
+	}
+};
 
 /**
  * Builds 4dof LGS (used for depth-lgs, at it has only 7 non-zero entries in jacobian)

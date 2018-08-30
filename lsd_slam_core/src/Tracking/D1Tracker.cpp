@@ -170,9 +170,24 @@ SE3 D1Tracker::trackFrameOnPermaref(
 	boost::shared_lock<boost::shared_mutex> lock = frame->getActiveLock();
 	boost::unique_lock<boost::mutex> lock2 = boost::unique_lock<boost::mutex>(reference->permaRef_mutex);
 
+	//Calculate motion constraints from cross section data
+	Sophus::SE3f to = frame->tunnelPose().transform().cast<float>(); //robot position in tunnel frame
+	Sophus::SE3f from = reference->tunnelPose().transform().cast<float>(); //robot position in tunnel frame
+
+	Sophus::SE3f trans = to.inverse()*from;
+	//Get tunnel axis in robot frame
+	Eigen::Vector3f dir = from.inverse().rotationMatrix()*Eigen::Vector3f(1,0,0);
+
+	// ============ track frame ============
+	//Fit prediction to cross section constraints
+	Sophus::SE3f referenceToFrameDiff = referenceToFrame*trans.inverse();
+	float axis_dist = referenceToFrameDiff.translation().dot(dir);
+	referenceToFrame = trans;
+	referenceToFrame.translation() += dir*axis_dist;
+
 	affineEstimation_a = 1; affineEstimation_b = 0;
 
-	LGS6 ls;
+	LGS1 ls;
 	diverged = false;
 	trackingWasGood = true;
 
@@ -194,21 +209,22 @@ SE3 D1Tracker::trackFrameOnPermaref(
 
 	for(int iteration=0; iteration < settings.maxItsTestTrack; iteration++)
 	{
-		callOptimized(calculateWarpUpdate,(ls));
+		callOptimized(calculateWarpUpdate,(ls, dir));
 
 
 		int incTry=0;
 		while(true)
 		{
 			// solve LS system with current lambda
-			Vector6 b = -ls.b;
-			Matrix6x6 A = ls.A;
-			for(int i=0;i<6;i++) A(i,i) *= 1+LM_lambda;
-			Vector6 inc = A.ldlt().solve(b);
+			float b = -ls.b;
+			float A = ls.A;
+			A *= 1+LM_lambda;
+			float inc = b/A;
 			incTry++;
 
 			// apply increment. pretty sure this way round is correct, but hard to test.
-			Sophus::SE3f new_referenceToFrame = Sophus::SE3f::exp((inc)) * referenceToFrame;
+			Sophus::SE3f new_referenceToFrame = referenceToFrame;
+			new_referenceToFrame.translation() += inc*dir;
 
 			// re-evaluate residual
 			callOptimized(calcResidualAndBuffers, (reference->permaRef_posData, reference->permaRef_colorAndVarData, 0, reference->permaRefNumPts, frame, new_referenceToFrame, QUICK_KF_CHECK_LVL, false));
@@ -248,7 +264,7 @@ SE3 D1Tracker::trackFrameOnPermaref(
 			}
 			else
 			{
-				if(!(inc.dot(inc) > settings.stepSizeMinTestTrack))
+				if(!(inc*inc > settings.stepSizeMinTestTrack))
 				{
 					iteration = settings.maxItsTestTrack;
 					break;
@@ -261,7 +277,7 @@ SE3 D1Tracker::trackFrameOnPermaref(
 			}
 		}
 	}
-	lastSE3Hessian = ls.A;
+	lastHessian = ls.A;
 	//std::cout << "Hessian: " << lastSE3Hessian << "\n";
 
 	lastResidual = lastErr;
@@ -308,27 +324,27 @@ SE3 D1Tracker::trackFrame(
 	Sophus::SE3f to = frame->tunnelPose().transform().cast<float>(); //robot position in tunnel frame
 	Sophus::SE3f from = reference->keyframe->tunnelPose().transform().cast<float>(); //robot position in tunnel frame
 
-	std::cout << "to: \n" << to.matrix() << "\n";
-	std::cout << "from: \n" << from.matrix() << "\n";
+	//std::cout << "to: \n" << to.matrix() << "\n";
+	//std::cout << "from: \n" << from.matrix() << "\n";
 
 	Sophus::SE3f trans = to.inverse()*from;
 	//Get tunnel axis in robot frame
 	Eigen::Vector3f dir = from.inverse().rotationMatrix()*Eigen::Vector3f(1,0,0);
 
-	std::cout << "dir: \n" << dir << "\n";
+	//std::cout << "dir: \n" << dir << "\n";
 
 	// ============ track frame ============
 	Sophus::SE3f referenceToFrame = frameToReference_initialEstimate.inverse().cast<float>();
-	std::cout << "orig: \n" << referenceToFrame.matrix() << "\n";
+	//std::cout << "orig: \n" << referenceToFrame.matrix() << "\n";
 	//Fit prediction to cross section constraints
 	Sophus::SE3f referenceToFrameDiff = referenceToFrame*trans.inverse();
 	float axis_dist = referenceToFrameDiff.translation().dot(dir);
-	std::cout << "axis dist: " << axis_dist << "\n";
+	//std::cout << "axis dist: " << axis_dist << "\n";
 	referenceToFrame = trans;
 	referenceToFrame.translation() += dir*axis_dist;
-	std::cout << "new: \n" << referenceToFrame.matrix() << "\n";
+	//std::cout << "new: \n" << referenceToFrame.matrix() << "\n";
 	
-	LGS6 ls;
+	LGS1 ls;
 
 
 	int numCalcResidualCalls[PYRAMID_LEVELS];
@@ -367,7 +383,7 @@ SE3 D1Tracker::trackFrame(
 		for(int iteration=0; iteration < settings.maxItsPerLvl[lvl]; iteration++)
 		{
 
-			callOptimized(calculateWarpUpdate,(ls));
+			callOptimized(calculateWarpUpdate,(ls, dir));
 
 			numCalcWarpUpdateCalls[lvl]++;
 
@@ -377,16 +393,15 @@ SE3 D1Tracker::trackFrame(
 			while(true)
 			{
 				// solve LS system with current lambda
-				Vector6 b = -ls.b;
-				Matrix6x6 A = ls.A;
-				for(int i=0;i<6;i++) A(i,i) *= 1+LM_lambda;
-				Vector6 inc = A.ldlt().solve(b);
+				float b = -ls.b;
+				float A = ls.A;
+				A *= 1+LM_lambda;
+				float inc = b/A;
 				incTry++;
 
 				// apply increment. pretty sure this way round is correct, but hard to test.
-				Sophus::SE3f new_referenceToFrame = Sophus::SE3f::exp((inc)) * referenceToFrame;
-				//Sophus::SE3f new_referenceToFrame = referenceToFrame * Sophus::SE3f::exp((inc));
-
+				Sophus::SE3f new_referenceToFrame = referenceToFrame;
+				new_referenceToFrame.translation() += inc*dir;
 
 				// re-evaluate residual
 				callOptimized(calcResidualAndBuffers, (reference->posData[lvl], reference->colorAndVarData[lvl], SE3TRACKING_MIN_LEVEL == lvl ? reference->pointPosInXYGrid[lvl] : 0, reference->numData[lvl], frame, new_referenceToFrame, lvl, (plotTracking && lvl == SE3TRACKING_MIN_LEVEL)));
@@ -412,12 +427,11 @@ SE3 D1Tracker::trackFrame(
 						affineEstimation_b = affineEstimation_b_lastIt;
 					}
 
-
 					if(enablePrintDebugInfo && printTrackingIterationInfoSE3)
 					{
 						// debug output
 						printf("(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
-								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
+								lvl,iteration, sqrt(inc*inc), LM_lambda, lastErr, error);
 
 						printf("         p=%.4f %.4f %.4f %.4f %.4f %.4f\n",
 								referenceToFrame.log()[0],referenceToFrame.log()[1],referenceToFrame.log()[2],
@@ -450,10 +464,10 @@ SE3 D1Tracker::trackFrame(
 					if(enablePrintDebugInfo && printTrackingIterationInfoSE3)
 					{
 						printf("(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f)\n",
-								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
+								lvl,iteration, sqrt(inc*inc), LM_lambda, lastErr, error);
 					}
 
-					if(!(inc.dot(inc) > settings.stepSizeMin[lvl]))
+					if(!(inc*inc > settings.stepSizeMin[lvl]))
 					{
 						if(enablePrintDebugInfo && printTrackingIterationInfoSE3)
 						{
@@ -495,7 +509,7 @@ SE3 D1Tracker::trackFrame(
 	saveAllTrackingStagesInternal = false;
 
 	lastResidual = last_residual;
-	lastSE3Hessian = ls.A;
+	lastHessian = ls.A;
 	//std::cout << "Hessian: " << lastSE3Hessian << "\n";
 
 	trackingWasGood = !diverged
@@ -1299,7 +1313,7 @@ void D1Tracker::calculateWarpUpdateNEON(
 
 
 void D1Tracker::calculateWarpUpdate(
-		LGS6 &ls)
+		LGS1 &ls, Eigen::Vector3f &dir)
 {
 //	weightEstimator.reset();
 //	weightEstimator.estimateDistribution(buf_warped_residual, buf_warped_size);
@@ -1318,20 +1332,13 @@ void D1Tracker::calculateWarpUpdate(
 
 		float z = 1.0f / pz;
 		float z_sqr = 1.0f / (pz*pz);
-		Vector6 v;
-		v[0] = z*gx + 0;
-		v[1] = 0 +         z*gy;
-		v[2] = (-px * z_sqr) * gx +
-			  (-py * z_sqr) * gy;
-		v[3] = (-px * py * z_sqr) * gx +
-			  (-(1.0 + py * py * z_sqr)) * gy;
-		v[4] = (1.0 + px * px * z_sqr) * gx +
-			  (px * py * z_sqr) * gy;
-		v[5] = (-py * z) * gx +
-			  (px * z) * gy;
+
+		float J = gx * dir[0] * z;
+		J += gy * dir[1] * z;
+		J -= dir[2] * z_sqr * (px * gx + py * gy);
 
 		// step 6: integrate into A and b:
-		ls.update(v, r, *(buf_weight_p+i));
+		ls.update(J, r, *(buf_weight_p+i));
 	}
 
 	// solve ls

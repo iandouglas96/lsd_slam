@@ -390,7 +390,7 @@ public:
 		lambdaSuccessFac = 0.5f;
 		lambdaFailFac = 2.0f;
 
-		const float stepSizeMinc[6] = {1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8};
+		const float stepSizeMinc[6] = {1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6};
 		const int maxIterations[6] = {5, 20, 50, 100, 100, 100};
 
 

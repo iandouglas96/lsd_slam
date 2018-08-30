@@ -45,7 +45,7 @@ public:
 	float fx,fy,cx,cy;
 	float fxi,fyi,cxi,cyi;
 
-	Matrix6x6 lastSE3Hessian;
+	float lastHessian;
 
 	DenseDepthTrackerSettings settings;
 
@@ -166,7 +166,7 @@ private:
 
 
 	void calculateWarpUpdate(
-			LGS6 &ls);
+			LGS1 &ls, Eigen::Vector3f &dir);
 #if defined(ENABLE_SSE)
 	void calculateWarpUpdateSSE(
 			LGS6 &ls);
