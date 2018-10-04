@@ -249,7 +249,6 @@ void KeyFrameGraph::addKeyFrame(Frame* frame)
 
 	if(!frame->hasTrackingParent())
 		vertex->setFixed(true);
-		std::cout << "Set fixed\n";
 
 	vertex->setEstimate(camToWorld_estimate);
 	vertex->setMarginalized(false);

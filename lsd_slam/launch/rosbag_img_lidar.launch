@@ -4,6 +4,6 @@
 
   <!-- Record everything -->
   <node pkg="rosbag" type="record" name="rosbag_record"
-    args="record -o /home/ian/outdoors_image_lidar_textured /velodyne_point_cloud /pg_16061374/image_mono /imu/imu /imu/magnetic_field"
+    args="record -o /home/ian/outdoor_sculpture /velodyne_point_cloud /pg_16401219/image_mono /imu/imu /imu/magnetic_field"
   />
 </launch>

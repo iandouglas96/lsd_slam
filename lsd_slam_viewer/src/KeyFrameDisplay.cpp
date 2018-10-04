@@ -56,6 +56,22 @@ KeyFrameDisplay::KeyFrameDisplay()
 
 	texture_state = 0;
 	fx = 0;
+
+	cv::Mat originalK_ = cv::Mat(3, 3, CV_64F, cv::Scalar(0));
+	originalK_.at<double>(0, 0) = 466.428;
+	originalK_.at<double>(1, 1) = 466.678;
+	originalK_.at<double>(2, 2) = 1;
+	originalK_.at<double>(0, 2) = 625.975;
+	originalK_.at<double>(1, 2) = 531.919;
+
+	cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_32F);
+	distCoeffs.at<float>(0, 0) = -0.017239;
+	distCoeffs.at<float>(1, 0) = 0.00187062;
+	distCoeffs.at<float>(2, 0) = 0.000122316;
+	distCoeffs.at<float>(3, 0) = -0.000507717;
+
+	cv::fisheye::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), originalK_,
+				cv::Size(1280, 1024), CV_16SC2, map1, map2);	
 }
 
 
@@ -79,10 +95,10 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	memcpy(camToWorld.data(), msg->camToWorld.data(), 7*sizeof(float));
 
 	if (fx == 0) {
-		fx = msg->fx;
-		fy = msg->fy;
-		cx = msg->cx;
-		cy = msg->cy;
+		fx = msg->fx*2;
+		fy = msg->fy*2;
+		cx = msg->cx*2;
+		cy = msg->cy*2;
 
 		cam_intrinsics << fx, 0, cx, 0, fy, cy, 0, 0, 1;
 
@@ -91,8 +107,8 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 		cxi = -cx / fx;
 		cyi = -cy / fy;
 
-		width = msg->width;
-		height = msg->height;
+		width = msg->width*2;
+		height = msg->height*2;
 	}
 	id = msg->id;
 	time = msg->time;
@@ -111,14 +127,34 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	tunnel_radius = msg->tunnel_radius;
 	pose_mutex.unlock();
 
+	std::cout << id << "\n";
+
 	// copy over image
-	if (msg->image.size() == sizeof(float)*width*height) {
+	if (msg->image.size() == sizeof(float)*width*height/4) {
+		/*
 		cv::Mat image = cv::Mat(height, width, CV_32F, cv::Scalar(0));
 		memcpy(image.data, msg->image.data(), sizeof(float)*width*height);
 		image.convertTo(image, CV_8UC1);
-		//std::cout << image << "\n";
-		setTexture(image);
-		//std::cout << "img disp...\n";
+		*/
+
+		//Hack to load images from file
+		int type = id % 4;
+		int num = id / 4;
+		std::cout << num << "\n";
+		char full_path[500];
+		sprintf(full_path, "%s%s%.6i.jpeg", path.c_str(), index[type].c_str(), num);
+		std::string full_path_str(full_path);
+
+		if (access( full_path, F_OK ) != -1) {
+			cv::Mat image = cv::imread(full_path_str, CV_LOAD_IMAGE_COLOR);
+			cv::remap(image, image, map1, map2, cv::INTER_LINEAR);
+
+			//std::cout << image << "\n";
+			setTexture(image);
+			//std::cout << "img disp...\n";
+		} else {
+			std::cout << "Not found: " << full_path_str << "\n";
+		}
 	} else {
 		//std::cout << "rot: " << robot_pose.linear() << "\n";
 		//std::cout << "bad image size: " << msg->image.size() << "\n";
@@ -128,7 +164,7 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	if(originalInput != 0)
 		delete[] originalInput;
 	originalInput=0;
-
+/*
 	if(msg->pointcloud.size() != width*height*sizeof(InputPointDense))
 	{
 		if(msg->pointcloud.size() != 0)
@@ -142,7 +178,7 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 		originalInput = new InputPointDense[width*height];
 		memcpy(originalInput, msg->pointcloud.data(), width*height*sizeof(InputPointDense));
 	}
-
+*/
 	glBuffersValid = false;
 }
 
@@ -266,14 +302,14 @@ void KeyFrameDisplay::refreshPC()
 
 void KeyFrameDisplay::setTexture(cv::Mat &color_channel)
 {
-    color_channel.convertTo(texture, CV_8UC1);
+    //color_channel.convertTo(texture, CV_8UC1);
 	texture_mutex.lock();
-	cv::cvtColor(color_channel, texture, cv::COLOR_GRAY2RGBA);
+	cv::cvtColor(color_channel, texture, cv::COLOR_BGR2RGBA);
 
 	for (int y = 0; y < height; ++y)
 		for (int x = 0; x < width; ++x) {
 			cv::Vec4b & pixel = texture.at<cv::Vec4b>(y, x);
-			if (pixel[0] == 0) pixel[3] = 0;
+			if (pixel[0] > 250 && pixel[1] > 250 && pixel[2] > 250) pixel[3] = 0;
 			else pixel[3] = std::max((height/2-imageWidth*(abs(height/2-y)))*255/(height/2),0);
 		}
 

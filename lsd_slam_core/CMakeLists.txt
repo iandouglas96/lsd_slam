@@ -90,6 +90,7 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/Tracking/SE3Tracker.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/D1Tracker.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/SE3DepthTracker.cpp
+  ${PROJECT_SOURCE_DIR}/src/Tracking/D1DepthTracker.cpp
   ${PROJECT_SOURCE_DIR}/src/Tracking/TrackingReference.cpp
   ${PROJECT_SOURCE_DIR}/src/IOWrapper/Timestamp.cpp
   ${PROJECT_SOURCE_DIR}/src/GlobalMapping/FabMap.cpp

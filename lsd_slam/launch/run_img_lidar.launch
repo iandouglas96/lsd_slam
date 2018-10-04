@@ -2,13 +2,13 @@
 
 <launch>
   <include file="$(find flea3)/launch/single_node.launch">
-    <arg name="device" value="16061374"/>
+    <arg name="device" value="16401219"/>
   </include>
 
   <!-- Debayer -->
   <node pkg="image_proc" type="image_proc" name="image_proc" output="screen">
-    <remap from="image_raw" to="/pg_16061374/image_raw"/>
-    <remap from="image_mono" to="/pg_16061374/image_mono"/>
+    <remap from="image_raw" to="/pg_16401219/image_raw"/>
+    <remap from="image_mono" to="/pg_16401219/image_mono"/>
   </node>
 
   <include file="$(find velodyne_puck_decoder)/launch/velodyne_puck_decoder_nodelet.launch"/>
@@ -17,6 +17,6 @@
 
   <!-- Record everything -->
   <!--node pkg="rosbag" type="record" name="rosbag_record"
-    args="record -o /media/ian/ExtHDD/InspectionData/hallway_datasets/hallway_img_lidar /velodyne_point_cloud /pg_16061374/image_mono /imu/imu /imu/magnetic_field"
+    args="record -o /media/ian/ExtHDD/InspectionData/hallway_datasets/hallway_img_lidar /velodyne_point_cloud /pg_16401219/image_mono /imu/imu /imu/magnetic_field"
   /-->
 </launch>

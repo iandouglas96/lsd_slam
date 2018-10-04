@@ -646,10 +646,7 @@ bool SlamSystem::updateKeyframe()
 
 
 	if(outputWrapper != 0 && continuousPCOutput && currentKeyFrame != 0) {
-		for (int i=0; i<NUM_CAMERAS; i++) {
-			//std::cout << "publishing int: " << i << "\n";
-			outputWrapper->publishKeyframe(currentKeyFrame->frameSet()->getFrame(i).get());
-		}
+		outputWrapper->publishKeyframe(currentKeyFrame.get());
 	}
 
 	return true;

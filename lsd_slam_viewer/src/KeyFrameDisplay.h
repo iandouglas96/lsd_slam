@@ -116,6 +116,12 @@ private:
 	bool vertexBufferIdValid;	// true if the vertixBufferID is valid (doesnt mean the data in there is still valid)
 	bool glBuffersValid;		// true if the vertexBufferID contains valid data
 
+	//random consts
+	std::string path = "/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/April2018/labelled_images/unet_w_focal_use_augment/";
+	std::string index[4] = {"br/pred_br_", "tl/pred_tl_", "tr/pred_tr_", "bl/pred_bl_"};
+
+	cv::Mat map1, map2;
+
 };
 
 
