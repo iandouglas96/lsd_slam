@@ -36,6 +36,7 @@ template<typename T>
 struct TimestampedObject
 {
 	T data;
+	int id_num;
 	Timestamp timestamp;
 };
 

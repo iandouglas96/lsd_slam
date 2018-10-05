@@ -82,8 +82,8 @@ ROSImageStreamThread::ROSImageStreamThread()
     tunnel_radius = -1;
 
 	// imagebuffer
-	imageBuffer = new NotifyBuffer<TimestampedMultiMat>(8);
-	segBuffer = new NotifyBuffer<TimestampedSegmentation>(8);
+	imageBuffer = new NotifyBuffer<TimestampedMultiMat>(20);
+	segBuffer = new NotifyBuffer<TimestampedSegmentation>(2);
 
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		undistorter[i] = 0;
@@ -262,12 +262,20 @@ void ROSImageStreamThread::segmentationCb(const object_inspection_ros::Output_im
 {
 	if (!haveCalib) return;
 
+	//Load confidence matrix into opencv
 	const int size[3] = {height_, width_, 9};
 	cv::Mat image = cv::Mat(3, size, CV_32F, cv::Scalar(0));
 	memcpy(image.data, top_left_seg->conf_mat.data(), sizeof(float)*width_*height_*9);
 
 	std::cout << "Conf mat received: " << top_left_seg->header.stamp << "\n";
 	std::cout << "Seq: " << top_left_seg->id_num << "\n";
+
+	//Buffer new matrix
+	TimestampedSegmentation bufferItem;
+	bufferItem.id_num = top_left_seg->id_num;
+	undistorter[0]->undistortSeg(image,bufferItem.data[0]);
+
+	segBuffer->pushBack(bufferItem);
 }
 
 void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg)
@@ -365,6 +373,7 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
 	lastSEQ = top_left_img->header.seq;
 
 	TimestampedMultiMat bufferItem;
+	bufferItem.id_num = top_left_img->header.seq;
 	if(top_left_img->header.stamp.toSec() != 0)
 		bufferItem.timestamp =  Timestamp(top_left_img->header.stamp.toSec());
 	else

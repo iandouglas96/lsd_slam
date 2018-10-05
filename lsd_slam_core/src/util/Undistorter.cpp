@@ -413,6 +413,8 @@ void UndistorterPTAM::undistort(const cv::Mat& image, cv::OutputArray result) co
 	}
 }
 
+void UndistorterPTAM::undistortSeg(const cv::Mat& image, cv::OutputArray result) const {}
+
 const cv::Mat& UndistorterPTAM::getK() const
 {
 	return K_;
@@ -636,6 +638,13 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 		float msUndist = ((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
 		printf("Undistortion: %fms\n", msUndist);
 	}
+}
+
+void UndistorterOpenCV::undistortSeg(const cv::Mat& image, cv::OutputArray result) const
+{
+	cv::Mat undst;
+	cv::remap(image, undst, map1, map2, cv::INTER_LINEAR);
+	undst.copyTo(result);
 }
 
 const cv::Mat& UndistorterOpenCV::getK() const

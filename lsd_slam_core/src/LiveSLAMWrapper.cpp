@@ -90,12 +90,17 @@ LiveSLAMWrapper::~LiveSLAMWrapper()
 void LiveSLAMWrapper::Loop()
 {
 	while (true) {
-		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getImageBuffer()->getMutex());
+		boost::unique_lock<boost::recursive_mutex> waitImageLock(imageStream->getImageBuffer()->getMutex());
 		while (!fullResetRequested && !(imageStream->getImageBuffer()->size() > 0)) {
-			notifyCondition.wait(waitLock);
+			notifyCondition.wait(waitImageLock);
 		}
-		waitLock.unlock();
-		
+		waitImageLock.unlock();
+
+		boost::unique_lock<boost::recursive_mutex> waitSegLock(imageStream->getSegBuffer()->getMutex());
+		while (!fullResetRequested && !(imageStream->getSegBuffer()->size() > 0)) {
+			notifyCondition.wait(waitSegLock);
+		}
+		waitSegLock.unlock();
 		
 		if(fullResetRequested)
 		{
@@ -106,10 +111,21 @@ void LiveSLAMWrapper::Loop()
 		}
 		
 		TimestampedMultiMat image = imageStream->getImageBuffer()->first();
-		imageStream->getImageBuffer()->popFront();
+		TimestampedSegmentation conf_mat = imageStream->getSegBuffer()->first();
 
-		// process image
-		newImageCallback(image.data, image.timestamp);
+		//If we are synched properly
+		if (image.id_num == conf_mat.id_num) {
+			// process image
+			imageStream->getImageBuffer()->popFront();
+			imageStream->getSegBuffer()->popFront();
+			newImageCallback(image.data, image.timestamp);
+		} else {
+			if (image.id_num < conf_mat.id_num)
+				imageStream->getImageBuffer()->popFront();
+			else
+				imageStream->getSegBuffer()->popFront();
+			ROS_ERROR_STREAM("Out of synch.  Cam: " << image.id_num << " Seg: " << conf_mat.id_num << "\n");
+		}
 
 		Util::displayThreadLoop();
 
