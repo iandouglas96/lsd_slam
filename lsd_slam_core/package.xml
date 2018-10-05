@@ -20,6 +20,7 @@
   <build_depend>rosbag</build_depend>
   <build_depend>eigen</build_depend>
   <build_depend>message_filters</build_depend>
+  <build_depend>object_inspection_ros</build_depend>
 
   <run_depend>cv_bridge</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
@@ -29,4 +30,5 @@
   <run_depend>rosbag</run_depend>
   <run_depend>eigen</run_depend>
   <run_depend>message_filters</run_depend>
+  <run_depend>object_inspection_ros</run_depend>
 </package> 

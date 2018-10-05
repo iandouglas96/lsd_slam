@@ -35,6 +35,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include "object_inspection_ros/Output_img_msg.h"
 
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
@@ -93,7 +94,7 @@ public:
 	void infoCb(const sensor_msgs::CameraInfoConstPtr info);
 	void radiusCb(const std_msgs::Float64::ConstPtr& msg);
 	void pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg);
-
+	void segmentationCb(const object_inspection_ros::Output_img_msgConstPtr top_left_seg);
 
 private:
 	//Image stream stuff
@@ -108,6 +109,8 @@ private:
 	message_filters::Subscriber<sensor_msgs::Image> *bottom_left_sub;
 	message_filters::Subscriber<sensor_msgs::Image> *bottom_right_sub;
 	message_filters::Synchronizer<SynchPolicy> *image_sub;
+
+	ros::Subscriber top_left_segmentation_sub;
 
 	int lastSEQ;
 

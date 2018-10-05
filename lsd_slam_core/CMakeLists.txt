@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   tf2_ros
   lsd_slam_viewer
+  object_inspection_ros
 )
 
 find_package(Eigen REQUIRED)
@@ -75,6 +76,7 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/DataStructures/FrameSet.cpp
   ${PROJECT_SOURCE_DIR}/src/DataStructures/FramePoseStruct.cpp
   ${PROJECT_SOURCE_DIR}/src/DataStructures/FrameMemory.cpp
+  ${PROJECT_SOURCE_DIR}/src/Segmentation/SegmentationMap.cpp
   ${PROJECT_SOURCE_DIR}/src/SlamSystem.cpp
   ${PROJECT_SOURCE_DIR}/src/LiveSLAMWrapper.cpp
   ${PROJECT_SOURCE_DIR}/src/DepthEstimation/DepthMap.cpp

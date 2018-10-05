@@ -54,6 +54,7 @@ ROSImageStreamThread::ROSImageStreamThread()
 	have_sensor_pose = false;
 
 	// subscribe
+	//images
 	top_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_left_image"), 1);
 	top_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_right_image"), 1);
 	bottom_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_left_image"), 1);
@@ -64,9 +65,15 @@ ROSImageStreamThread::ROSImageStreamThread()
 
 	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));
 
+	//pointcloud
 	pointcloud_sub = nh_.subscribe(nh_.resolveName("pointcloud"), 1, &ROSImageStreamThread::pointCloudCb, this);
+
+	//tunnel radius
 	std::string radius_channel = nh_.resolveName("local_tunnel_radius");
 	radius_sub = nh_.subscribe(radius_channel,1, &ROSImageStreamThread::radiusCb, this);
+
+	//segmentation maps
+	top_left_segmentation_sub = nh_.subscribe(nh_.resolveName("top_left_segmentation"), 1, &ROSImageStreamThread::segmentationCb, this);
 
     // tf2 listener and buffer
     this->tf_buffer = new tf2_ros::Buffer();
@@ -76,6 +83,8 @@ ROSImageStreamThread::ROSImageStreamThread()
 
 	// imagebuffer
 	imageBuffer = new NotifyBuffer<TimestampedMultiMat>(8);
+	segBuffer = new NotifyBuffer<TimestampedSegmentation>(8);
+
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		undistorter[i] = 0;
 	}
@@ -247,6 +256,18 @@ void ROSImageStreamThread::operator()()
 	ros::spin();
 
 	exit(0);
+}
+
+void ROSImageStreamThread::segmentationCb(const object_inspection_ros::Output_img_msgConstPtr top_left_seg)
+{
+	if (!haveCalib) return;
+
+	const int size[3] = {height_, width_, 9};
+	cv::Mat image = cv::Mat(3, size, CV_32F, cv::Scalar(0));
+	memcpy(image.data, top_left_seg->conf_mat.data(), sizeof(float)*width_*height_*9);
+
+	std::cout << "Conf mat received: " << top_left_seg->header.stamp << "\n";
+	std::cout << "Seq: " << top_left_seg->id_num << "\n";
 }
 
 void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg)

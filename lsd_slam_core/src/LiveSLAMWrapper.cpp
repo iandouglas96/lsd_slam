@@ -42,7 +42,8 @@ LiveSLAMWrapper::LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper*
 {
 	this->imageStream = imageStream;
 	this->outputWrapper = outputWrapper;
-	imageStream->getBuffer()->setReceiver(this);
+	imageStream->getImageBuffer()->setReceiver(this);
+	imageStream->getSegBuffer()->setReceiver(this);
 
 	fx = imageStream->fx();
 	fy = imageStream->fy();
@@ -89,8 +90,8 @@ LiveSLAMWrapper::~LiveSLAMWrapper()
 void LiveSLAMWrapper::Loop()
 {
 	while (true) {
-		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
-		while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
+		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getImageBuffer()->getMutex());
+		while (!fullResetRequested && !(imageStream->getImageBuffer()->size() > 0)) {
 			notifyCondition.wait(waitLock);
 		}
 		waitLock.unlock();
@@ -100,12 +101,12 @@ void LiveSLAMWrapper::Loop()
 		{
 			resetAll();
 			fullResetRequested = false;
-			if (!(imageStream->getBuffer()->size() > 0))
+			if (!(imageStream->getImageBuffer()->size() > 0))
 				continue;
 		}
 		
-		TimestampedMultiMat image = imageStream->getBuffer()->first();
-		imageStream->getBuffer()->popFront();
+		TimestampedMultiMat image = imageStream->getImageBuffer()->first();
+		imageStream->getImageBuffer()->popFront();
 
 		// process image
 		newImageCallback(image.data, image.timestamp);

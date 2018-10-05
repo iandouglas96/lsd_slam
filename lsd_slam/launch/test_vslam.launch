@@ -111,6 +111,7 @@
   <node pkg="image_proc" type="image_proc" name="image_proc_top_left">
     <remap from="image_raw" to="/camera/top_left_image_decomp"/>
     <remap from="image_mono" to="/camera/top_left_image_debayer"/>
+    <remap from="image_color" to="/unet_ros_node/tl/input_img"/>
   </node>
 
     <!-- Decompress the image -->
@@ -149,6 +150,9 @@
     <remap from="image_mono" to="/camera/bottom_right_image_debayer"/>
   </node>
 
+  <!-- Segmentation -->
+  <node pkg="object_inspection_ros" name="segmentation_tl" type="listener.py" output="screen" args="--cam tl"/>
+
   <!-- LSD SLAM system -->
   <!-- Yes, the bottom camera names are backwards for this dataset -->
   <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
@@ -156,7 +160,11 @@
     <remap from="top_right_image" to="/camera/top_left_image_debayer"/>
     <remap from="bottom_left_image" to="/camera/top_right_image_debayer"/>
     <remap from="bottom_right_image" to="/camera/bottom_left_image_debayer"/>
+
     <remap from="local_tunnel_radius" to="/test_icra2017_video/local_tunnel_radius"/>
+
+    <remap from="top_left_segmentation" to="/unet_ros_node/tl/conf_mat"/>
+
     <param name="calib" value="/home/ian/.ros/camera_info/camera_intrinsics_set.cfg"/>
     <param name="use_tunnel_estimator" value="true"/>
   </node>

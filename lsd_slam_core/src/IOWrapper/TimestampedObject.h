@@ -41,6 +41,7 @@ struct TimestampedObject
 
 typedef TimestampedObject< cv::Mat > TimestampedMat;
 typedef TimestampedObject<cv::Mat[NUM_CAMERAS]> TimestampedMultiMat;
+typedef TimestampedObject<cv::Mat[NUM_CAMERAS]> TimestampedSegmentation;
 
 }
 #endif

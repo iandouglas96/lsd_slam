@@ -49,8 +49,8 @@ public:
 	/**
 	 * Gets the NotifyBuffer to which incoming images are stored.
 	 */
-	inline NotifyBuffer<TimestampedMultiMat>* getBuffer() {return imageBuffer;};
-
+	inline NotifyBuffer<TimestampedMultiMat>* getImageBuffer() {return imageBuffer;};
+	inline NotifyBuffer<TimestampedSegmentation>* getSegBuffer() {return segBuffer;};
 
 	/**
 	 * Gets the Camera Calibration. To avoid any dependencies, just as simple float / int's.
@@ -64,6 +64,7 @@ public:
 
 protected:
 	NotifyBuffer<TimestampedMultiMat>* imageBuffer;
+	NotifyBuffer<TimestampedSegmentation>* segBuffer;
 	float fx_, fy_, cx_, cy_;
 	int width_, height_;
 };
