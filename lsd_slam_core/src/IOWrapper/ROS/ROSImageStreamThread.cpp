@@ -56,14 +56,16 @@ ROSImageStreamThread::ROSImageStreamThread()
 	// subscribe
 	//images
 	top_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_left_image"), 1);
-	top_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_right_image"), 1);
+	/*top_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_right_image"), 1);
 	bottom_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_left_image"), 1);
 	bottom_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_right_image"), 1);
 
 	image_sub = new message_filters::Synchronizer<SynchPolicy>(SynchPolicy(5),
 		*top_left_sub, *top_right_sub, *bottom_left_sub, *bottom_right_sub);
 
-	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));
+	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));*/
+
+	top_left_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1));
 
 	//pointcloud
 	pointcloud_sub = nh_.subscribe(nh_.resolveName("pointcloud"), 1, &ROSImageStreamThread::pointCloudCb, this);
@@ -349,10 +351,10 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 	haveDepthMap = true;
 }
 
-void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
+void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img/*,
 			   					 const sensor_msgs::ImageConstPtr top_right_img, 
 			   					 const sensor_msgs::ImageConstPtr bottom_left_img, 
-			   					 const sensor_msgs::ImageConstPtr bottom_right_img)
+			   					 const sensor_msgs::ImageConstPtr bottom_right_img*/)
 {
 	if(!haveCalib) return;
 	struct timeval tv_start, tv_end;
@@ -360,9 +362,9 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
 
 	cv_bridge::CvImagePtr cv_ptr[NUM_CAMERAS];
 	cv_ptr[0] = cv_bridge::toCvCopy(top_left_img, sensor_msgs::image_encodings::MONO8);
-	cv_ptr[1] = cv_bridge::toCvCopy(top_right_img, sensor_msgs::image_encodings::MONO8);
+	/*cv_ptr[1] = cv_bridge::toCvCopy(top_right_img, sensor_msgs::image_encodings::MONO8);
 	cv_ptr[2] = cv_bridge::toCvCopy(bottom_left_img, sensor_msgs::image_encodings::MONO8);
-	cv_ptr[3] = cv_bridge::toCvCopy(bottom_right_img, sensor_msgs::image_encodings::MONO8);
+	cv_ptr[3] = cv_bridge::toCvCopy(bottom_right_img, sensor_msgs::image_encodings::MONO8);*/
 
 	if(top_left_img->header.seq < (unsigned int)lastSEQ)
 	{
