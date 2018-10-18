@@ -113,6 +113,28 @@ void displayImage(const char* windowName, const cv::Mat& image, bool autoSize)
 	//cv::waitKey(1);
 }
 
+cv::Mat renderSegmentationOverlay(const float* seg, const float* img, int width, int height, int numClasses)
+{
+	//Empty image (all black)
+	cv::Mat out(height, width, CV_8UC3, cv::Scalar(0,0,0));
+	for (int i=0; i<(width-1)*(height-1); i++) {
+		int mostLikelyClass = 0;
+		float maxLikelihood = 0;
+
+		for (int c=0; c<numClasses; c++) {
+			if (seg[numClasses*i + c] > maxLikelihood) {
+				mostLikelyClass = c;
+				maxLikelihood = seg[numClasses*i + c];
+			}
+		}
+		//std::cout << mostLikelyClass << "\n";
+
+		out.at<cv::Vec3b>(i/width, i%width) = colors[mostLikelyClass]/2 + cv::Vec3b(img[i],img[i],img[i])/2;
+	}
+
+	return out;
+}
+
 cv::Mat renderSegmentation(const float* seg, int width, int height, int numClasses)
 {
 	//Empty image (all black)

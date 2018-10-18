@@ -67,6 +67,7 @@ inline void displayImage(const char* windowName, const float* image, int width, 
 }
 
 cv::Mat renderSegmentation(const float* seg, int width, int height, int numClasses);
+cv::Mat renderSegmentationOverlay(const float* seg, const float* img, int width, int height, int numClasses);
 
 /// Waits for key input at most the given amount of milliseconds and returns the keycode.
 /// If milliseconds is zero, waits until a key is pressed.

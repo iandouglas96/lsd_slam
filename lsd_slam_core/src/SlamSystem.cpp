@@ -609,7 +609,7 @@ bool SlamSystem::updateKeyframe()
 		currentKeyFrame->updateSegmentation(references);
 
 		if (currentKeyFrame->segmentation() != NULL) {
-			cv::Mat segcv = Util::renderSegmentation(currentKeyFrame->segmentation(), width, height, NUM_SEG_CLASSES);
+			cv::Mat segcv = Util::renderSegmentationOverlay(currentKeyFrame->segmentation(), currentKeyFrame->image(0), width, height, NUM_SEG_CLASSES);
 			Util::displayImage("kf segmented image", segcv);
 		}
 
