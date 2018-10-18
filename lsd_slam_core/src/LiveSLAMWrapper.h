@@ -66,7 +66,7 @@ public:
 	void resetAll();
 
 	/** Callback function for new RGB images. */
-	void newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp imgTime);
+	void newImageCallback(const cv::Mat img[NUM_CAMERAS], const cv::Mat seg[NUM_CAMERAS], Timestamp imgTime);
 
 	/** Writes the given time and pose to the outFile. */
 	void logCameraPose(const SE3& camToWorld, double time);

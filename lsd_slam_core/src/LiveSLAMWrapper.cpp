@@ -118,7 +118,8 @@ void LiveSLAMWrapper::Loop()
 			// process image
 			imageStream->getImageBuffer()->popFront();
 			imageStream->getSegBuffer()->popFront();
-			newImageCallback(image.data, image.timestamp);
+			
+			newImageCallback(image.data, conf_mat.data, image.timestamp);
 		} else {
 			if (image.id_num < conf_mat.id_num)
 				imageStream->getImageBuffer()->popFront();
@@ -138,12 +139,13 @@ void LiveSLAMWrapper::Loop()
 }
 
 
-void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp imgTime)
+void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], const cv::Mat seg[NUM_CAMERAS], Timestamp imgTime)
 {
 	++ imageSeqNumber;
 
 	cv::Mat grayImg[NUM_CAMERAS];
 	uchar* imagePtrs[NUM_CAMERAS];
+	float* segPtrs[NUM_CAMERAS];
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		// Convert image to grayscale, if necessary
 		if (img[i].channels() == 1)
@@ -157,8 +159,8 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 		assert(fx != 0 || fy != 0);
 
 		imagePtrs[i] = grayImg[i].data;
+		segPtrs[i] = (float*)(seg[i].data);
 	}
-
 
 	// need to initialize
 	if(!isInitialized)
@@ -182,7 +184,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat img[NUM_CAMERAS], Timestamp
 	{
 		struct timeval tv_start, tv_end;
 		gettimeofday(&tv_start, NULL);
-		monoOdometry->trackFrame(imagePtrs,imageSeqNumber,false,imgTime.toSec());
+		monoOdometry->trackFrame(imagePtrs,segPtrs,imageSeqNumber,false,imgTime.toSec());
 		gettimeofday(&tv_end, NULL);
 		if(enablePrintDebugInfo && printOverallTiming) {
 			float msTrack = ((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);

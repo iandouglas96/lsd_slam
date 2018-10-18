@@ -37,6 +37,19 @@ namespace Util
 		bool autoSize;
 	};
 
+const cv::Vec3b colors[9] = 
+{
+	cv::Vec3b(0, 0, 0),
+	cv::Vec3b(0, 254, 254),
+	cv::Vec3b(254, 0, 254),
+	cv::Vec3b(254, 0, 0),
+	cv::Vec3b(254, 254, 0),
+	cv::Vec3b(0, 254, 0),
+	cv::Vec3b(130, 130, 0),
+	cv::Vec3b(0, 130, 130),
+	cv::Vec3b(130, 0, 130)
+};
+
 void displayThreadLoop();
 
 /// Image display function working on different platforms.
@@ -52,6 +65,8 @@ inline void displayImage(const char* windowName, const float* image, int width, 
 	cv::cvtColor(tempImage, tempImage, CV_GRAY2RGB);
 	displayImage(windowName, tempImage);
 }
+
+cv::Mat renderSegmentation(const float* seg, int width, int height, int numClasses);
 
 /// Waits for key input at most the given amount of milliseconds and returns the keycode.
 /// If milliseconds is zero, waits until a key is pressed.

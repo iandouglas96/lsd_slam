@@ -239,7 +239,7 @@ private:
 	int out_width, out_height;
 	int in_width, in_height;
 	int crop_width, crop_height;
-	cv::Mat map1, map2;
+	cv::Mat map1, map2, smallmap1, smallmap2;
 	bool cropCenter;
 	
 	/// Is true if the undistorter object is valid (has been initialized with

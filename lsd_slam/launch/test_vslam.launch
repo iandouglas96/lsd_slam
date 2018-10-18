@@ -61,7 +61,7 @@
   </group>
 
 
-  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.05 --start=15 --duration=150 --clock">
+  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.05 --start=30 --duration=150 --clock">
     <remap from="/velodyne_point_cloud" to="/velodyne_points"/>
     <remap from="/quadruple/bottom_left/image_raw/compressed"  to="/cam/bottom_left/compressed"/>
     <remap from="/quadruple/bottom_right/image_raw/compressed" to="/cam/bottom_right/compressed"/>
@@ -111,7 +111,6 @@
   <node pkg="image_proc" type="image_proc" name="image_proc_top_left">
     <remap from="image_raw" to="/camera/top_left_image_decomp"/>
     <remap from="image_mono" to="/camera/top_left_image_debayer"/>
-    <remap from="image_color" to="/unet_ros_node/tl/input_img"/>
   </node>
 
     <!-- Decompress the image -->
@@ -148,6 +147,7 @@
   <node pkg="image_proc" type="image_proc" name="image_proc_bottom_right">
     <remap from="image_raw" to="/camera/bottom_right_image_decomp"/>
     <remap from="image_mono" to="/camera/bottom_right_image_debayer"/>
+    <remap from="image_color" to="/unet_ros_node/tl/input_img"/>
   </node>
 
   <!-- Segmentation -->

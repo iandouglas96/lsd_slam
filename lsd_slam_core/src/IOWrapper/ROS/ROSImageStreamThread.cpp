@@ -265,8 +265,7 @@ void ROSImageStreamThread::segmentationCb(const object_inspection_ros::Output_im
 	if (!haveCalib) return;
 
 	//Load confidence matrix into opencv
-	const int size[3] = {height_, width_, 9};
-	cv::Mat image = cv::Mat(3, size, CV_32F, cv::Scalar(0));
+	cv::Mat image = cv::Mat(cv::Size(width_, height_), CV_32FC(9), cv::Scalar(0));
 	memcpy(image.data, top_left_seg->conf_mat.data(), sizeof(float)*width_*height_*9);
 
 	std::cout << "Conf mat received: " << top_left_seg->header.stamp << "\n";
@@ -275,6 +274,7 @@ void ROSImageStreamThread::segmentationCb(const object_inspection_ros::Output_im
 	//Buffer new matrix
 	TimestampedSegmentation bufferItem;
 	bufferItem.id_num = top_left_seg->id_num;
+
 	undistorter[0]->undistortSeg(image,bufferItem.data[0]);
 
 	segBuffer->pushBack(bufferItem);

@@ -572,6 +572,8 @@ UndistorterOpenCV::UndistorterOpenCV(const char* configFileName)
 			printf("Using fisheye model\n");
 			cv::fisheye::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), originalK_,
 				cv::Size(in_width, in_height), CV_16SC2, map1, map2);	
+			cv::fisheye::initUndistortRectifyMap(K_, distCoeffs, cv::Mat(), K_,
+				cv::Size(out_width, out_height), CV_16SC2, smallmap1, smallmap2);	
 		} else {
 			printf("Using standard opencv model\n");
 			cv::initUndistortRectifyMap(originalK_, distCoeffs, cv::Mat(), originalK_,
@@ -643,7 +645,11 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 void UndistorterOpenCV::undistortSeg(const cv::Mat& image, cv::OutputArray result) const
 {
 	cv::Mat undst;
-	cv::remap(image, undst, map1, map2, cv::INTER_LINEAR);
+	std::cout << image.size() << "\n";
+	std::cout << image.channels() << "\n";
+	cv::remap(image, undst, smallmap1, smallmap2, cv::INTER_LINEAR);
+	std::cout << undst.size() << "\n";
+	std::cout << undst.channels() << "\n";
 	undst.copyTo(result);
 }
 

@@ -960,11 +960,13 @@ void SlamSystem::randomInit(uchar* image[NUM_CAMERAS], double timeStamp, int id)
 
 }
 
-void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp){
+void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], float* seg[NUM_CAMERAS], unsigned int frameID, bool blockUntilMapped, double timestamp){
 	boost::shared_lock<boost::shared_mutex> cam_lock(currentCameraMutex);
 
 	cv::Mat imagecv(cv::Size(width, height), CV_8UC1, image[currentCamera], cv::Mat::AUTO_STEP);
+	cv::Mat segcv = Util::renderSegmentation(seg[0], width, height, 9);
 	Util::displayImage("current tracking image", imagecv);
+	Util::displayImage("current segmented image", segcv);
 
 	// Create new frame
 	std::array<std::shared_ptr<Frame>, NUM_CAMERAS> image_arr;

@@ -71,6 +71,29 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
 }
 
+Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const unsigned char* image, const float* seg)
+{
+	initialize(id, width, height, K, timestamp);
+	
+	data.image[0] = FrameMemory::getInstance().getFloatBuffer(data.width[0]*data.height[0]);
+	float* maxPt = data.image[0] + data.width[0]*data.height[0];
+
+	for(float* pt = data.image[0]; pt < maxPt; pt++)
+	{
+		*pt = *image;
+		image++;
+	}
+
+	data.imageValid[0] = true;
+
+	privateFrameAllocCount++;
+
+	tryRetrack = true;
+
+	if(enablePrintDebugInfo && printMemoryDebugInfo)
+		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
+}
+
 Frame::~Frame()
 {
 
