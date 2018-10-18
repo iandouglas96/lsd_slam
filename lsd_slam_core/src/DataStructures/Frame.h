@@ -68,6 +68,9 @@ public:
 	/** Prepares this frame for stereo comparisons with the other frame (computes some intermediate values that will be needed) */
 	void prepareForStereoWith(Frame* other, SE3 thisToOther, const Eigen::Matrix3f& K, const int level);
 
+	/** Fuse segmentation data*/
+	void updateSegmentation(std::deque< std::shared_ptr<Frame> > referenceFrames);
+
 	inline void setTunnelInfo(SE3NoX &pose, float radius) {
 		data.tunnel_pose = pose;
 		data.tunnel_radius = radius;
@@ -76,7 +79,6 @@ public:
 	inline void setFrameSet(std::shared_ptr<FrameSet> fs) {
 		data.frameSet = fs;
 	}
-
 	
 
 	// Accessors
@@ -115,6 +117,7 @@ public:
 	/** Returns the frame's recording timestamp. */
 	inline double timestamp() const;
 	
+	inline float* segmentation();
 	inline float* image(int level = 0);
 	inline const Eigen::Vector4f* gradients(int level = 0);
 	inline const float* maxGradients(int level = 0);
@@ -224,6 +227,8 @@ public:
 	float meanInformation;
 
 private:
+	//Copied from version in ROSImageStreamThread, minor mods only
+	float calcDistance(Eigen::Vector3f &ray_direction);
 
 	void require(int dataFlags, int level = 0);
 	void release(int dataFlags, bool pyramidsOnly, bool invalidateOnly);
@@ -261,6 +266,9 @@ private:
 		
 		float* image[PYRAMID_LEVELS];
 		bool imageValid[PYRAMID_LEVELS];
+
+		float* segmentation; //Image segmentation.  Don't need pyramid levels
+		bool segmentationValid;
 		
 		Eigen::Vector4f* gradients[PYRAMID_LEVELS];
 		bool gradientsValid[PYRAMID_LEVELS];
@@ -312,6 +320,13 @@ private:
 	  * ONLY CALL THIS, if an exclusive lock on activeMutex is owned! */
 	bool minimizeInMemory();
 };
+
+inline float *Frame::segmentation()
+{
+	if (data.segmentationValid)
+		return data.segmentation;
+	return NULL;
+}
 
 inline FrameSet *Frame::frameSet() const
 {

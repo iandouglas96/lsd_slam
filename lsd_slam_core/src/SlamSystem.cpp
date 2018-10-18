@@ -606,6 +606,12 @@ bool SlamSystem::updateKeyframe()
 
 		//map->setLidarDepth(lidarDepth);
 		map->updateKeyframe(references);
+		currentKeyFrame->updateSegmentation(references);
+
+		if (currentKeyFrame->segmentation() != NULL) {
+			cv::Mat segcv = Util::renderSegmentation(currentKeyFrame->segmentation(), width, height, NUM_SEG_CLASSES);
+			Util::displayImage("kf segmented image", segcv);
+		}
 
 		popped->clear_refPixelWasGood();
 		references.clear();
@@ -964,14 +970,14 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], float* seg[NUM_CAMERAS], 
 	boost::shared_lock<boost::shared_mutex> cam_lock(currentCameraMutex);
 
 	cv::Mat imagecv(cv::Size(width, height), CV_8UC1, image[currentCamera], cv::Mat::AUTO_STEP);
-	cv::Mat segcv = Util::renderSegmentation(seg[0], width, height, 9);
+	cv::Mat segcv = Util::renderSegmentation(seg[0], width, height, NUM_SEG_CLASSES);
 	Util::displayImage("current tracking image", imagecv);
 	Util::displayImage("current segmented image", segcv);
 
 	// Create new frame
 	std::array<std::shared_ptr<Frame>, NUM_CAMERAS> image_arr;
 	image_arr[currentCamera] = std::shared_ptr<Frame>(new Frame((frameID*NUM_CAMERAS)+currentCamera, width,
-																 height, K, timestamp, image[currentCamera]));
+																 height, K, timestamp, image[currentCamera], seg[0]));
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		if (i != currentCamera) {
 			image_arr[i] = std::shared_ptr<Frame>(new Frame((frameID*NUM_CAMERAS)+i, width, height, K, timestamp, image[i]));

@@ -46,6 +46,7 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 	}
 
 	data.imageValid[0] = true;
+	data.segmentationValid = false;
 
 	privateFrameAllocCount++;
 
@@ -62,6 +63,7 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 	data.image[0] = FrameMemory::getInstance().getFloatBuffer(data.width[0]*data.height[0]);
 	memcpy(data.image[0], image, data.width[0]*data.height[0] * sizeof(float));
 	data.imageValid[0] = true;
+	data.segmentationValid = false;
 
 	privateFrameAllocCount++;
 
@@ -85,6 +87,10 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 	}
 
 	data.imageValid[0] = true;
+
+	data.segmentation = FrameMemory::getInstance().getFloatBuffer(data.width[0]*data.height[0]*NUM_SEG_CLASSES);
+	memcpy(data.segmentation, seg, NUM_SEG_CLASSES*data.width[0]*data.height[0] * sizeof(float));
+	data.segmentationValid = true;
 
 	privateFrameAllocCount++;
 
@@ -119,6 +125,7 @@ Frame::~Frame()
 	FrameMemory::getInstance().returnBuffer((float*)data.validity_reAct);
 	FrameMemory::getInstance().returnBuffer(data.idepth_reAct);
 	FrameMemory::getInstance().returnBuffer(data.idepthVar_reAct);
+	FrameMemory::getInstance().returnBuffer(data.segmentation);
 
 	if(permaRef_colorAndVarData != 0)
 		delete permaRef_colorAndVarData;
@@ -341,6 +348,66 @@ void Frame::prepareForStereoWith(Frame* other, SE3 thisToOther, const Eigen::Mat
 
 	referenceID = other->id();
 	referenceLevel = level;
+}
+
+float Frame::calcDistance(Eigen::Vector3f &ray_direction)
+{
+    Eigen::Vector3d pos = data.tunnel_pose.transform().translation();
+    Eigen::Vector3d dir(ray_direction.x(), ray_direction.y(), ray_direction.z());
+    dir = data.tunnel_pose.transform().rotationMatrix()*dir;
+
+	//ROS_INFO_STREAM("Ray direction: \n" << ray_direction << "\ndir: \n" << dir << "\ncam pose: \n" << cam_pose[cam].matrix());
+
+    //project onto y-z plane (cross sectional plane of tunnel), magnitude doesn't matter
+    Eigen::Vector3d proj = Eigen::Vector3d::UnitX().cross(dir.cross(Eigen::Vector3d::UnitX()));
+    
+    //Assume parametrization x=x0+at, y=y0+bt, z=z0+ct where a^2+b^2+c^2=1
+    double under_sqrt = proj(1)*proj(1)*(data.tunnel_radius*data.tunnel_radius-pos(2)*pos(2));//a^2*(R^2-y0^2)
+    under_sqrt += proj(2)*proj(2)*(data.tunnel_radius*data.tunnel_radius-pos(1)*pos(1));//b^2*(R^2-x0^2)
+    under_sqrt += 2*proj(1)*proj(2)*pos(1)*pos(2);//2*a*b*x0*y0
+    double t = -proj(1)*pos(1)-proj(2)*pos(2);//-a*x0-b*y0
+    t += sqrt(under_sqrt);
+    t /= proj(1)*proj(1) + proj(2)*proj(2);
+
+	//ROS_INFO_STREAM("Raw dist: " << t);
+    return t;
+}
+
+void Frame::updateSegmentation(std::deque< std::shared_ptr<Frame> > referenceFrames)
+{
+	if (!data.segmentationValid) return;
+	
+	int segmax = (data.width[0]-1)*(data.height[0]-1);
+	int x=0;
+	int y=0;
+	Eigen::Vector3f globalpos;
+	int refidx;
+	for(std::shared_ptr<Frame> frame : referenceFrames) {
+		if (frame->segmentation() == NULL) continue;
+		Sophus::SE3f kfToRef = (frame->getScaledCamToWorld().inverse() * this->getScaledCamToWorld()).cast<float>();
+
+		for (int idx = 0; idx<segmax; idx += 1) {
+			x = idx%data.width[0];
+			y = idx/data.width[0];
+
+			//Project
+			globalpos = KInv(0)*Eigen::Vector3f(x, y, 1);
+			globalpos.normalize();
+			globalpos *= calcDistance(globalpos);
+			//Transform into reference frame
+			globalpos = kfToRef * globalpos;
+			//Backproject
+			globalpos = K(0)*globalpos;
+			globalpos /= globalpos(2);
+
+			refidx = static_cast<int>(globalpos(0)) + static_cast<int>(globalpos(1))*data.width[0];
+			//std::cout << "refidx: " << refidx << "\n";
+			if (refidx < 0 || refidx >= segmax) continue;
+
+			for (int c=0; c<NUM_SEG_CLASSES; c++)
+				data.segmentation[idx*NUM_SEG_CLASSES + c] += frame->segmentation()[refidx*NUM_SEG_CLASSES + c];
+		}
+	}
 }
 
 void Frame::require(int dataFlags, int level)

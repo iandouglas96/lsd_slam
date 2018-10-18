@@ -266,7 +266,7 @@ void ROSImageStreamThread::segmentationCb(const object_inspection_ros::Output_im
 
 	//Load confidence matrix into opencv
 	cv::Mat image = cv::Mat(cv::Size(width_, height_), CV_32FC(9), cv::Scalar(0));
-	memcpy(image.data, top_left_seg->conf_mat.data(), sizeof(float)*width_*height_*9);
+	memcpy(image.data, top_left_seg->conf_mat.data(), sizeof(float)*width_*height_*NUM_SEG_CLASSES);
 
 	std::cout << "Conf mat received: " << top_left_seg->header.stamp << "\n";
 	std::cout << "Seq: " << top_left_seg->id_num << "\n";

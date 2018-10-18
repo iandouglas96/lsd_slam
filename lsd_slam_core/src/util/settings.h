@@ -167,6 +167,7 @@ namespace lsd_slam
 
 #define MIN_NUM_MAPPED 5
 
+#define NUM_SEG_CLASSES 9
 //Multicamera settings
 #define NUM_CAMERAS 1
 
