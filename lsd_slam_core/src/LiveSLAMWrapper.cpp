@@ -125,7 +125,7 @@ void LiveSLAMWrapper::Loop()
 				imageStream->getImageBuffer()->popFront();
 			else
 				imageStream->getSegBuffer()->popFront();
-			ROS_ERROR_STREAM("Out of synch.  Cam: " << image.id_num << " Seg: " << conf_mat.id_num << "\n");
+			ROS_WARN_STREAM("Out of synch.  Cam: " << image.id_num << " Seg: " << conf_mat.id_num << "\n");
 		}
 
 		Util::displayThreadLoop();

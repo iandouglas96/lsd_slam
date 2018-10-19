@@ -22,6 +22,7 @@
 #include "util/SophusUtil.h"
 #include <ros/ros.h>
 #include "util/settings.h"
+#include "IOWrapper/ImageDisplay.h"
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -120,8 +121,11 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 	}
 
 	//load image and reference data
-	fMsg.image.resize(sizeof(float)*w*h);
-	memcpy(fMsg.image.data(), f->image(0), sizeof(float)*w*h); //Copy data
+	if (f->segmentation() != NULL) {
+		cv::Mat overlay = Util::renderSegmentationOverlay(f->segmentation(), f->image(0), w, h, NUM_SEG_CLASSES);
+		fMsg.image.resize(sizeof(char)*w*h*3);
+		memcpy(fMsg.image.data(), overlay.data, sizeof(char)*w*h*3); //Copy data
+	}
 	tf2::convert(f->tunnelPose().transform().translation(), fMsg.tunnel_pose.position);
 	//std::cout << "pos: " << f->tunnelPose().transform().translation() << "\n";
 	tf2::convert(f->tunnelPose().transform().unit_quaternion(), fMsg.tunnel_pose.orientation);

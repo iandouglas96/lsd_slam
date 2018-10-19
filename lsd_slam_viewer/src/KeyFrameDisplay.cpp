@@ -112,10 +112,9 @@ void KeyFrameDisplay::setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	pose_mutex.unlock();
 
 	// copy over image
-	if (msg->image.size() == sizeof(float)*width*height) {
-		cv::Mat image = cv::Mat(height, width, CV_32F, cv::Scalar(0));
-		memcpy(image.data, msg->image.data(), sizeof(float)*width*height);
-		image.convertTo(image, CV_8UC1);
+	if (msg->image.size() == sizeof(char)*width*height*3) {
+		cv::Mat image = cv::Mat(height, width, CV_8UC3, cv::Scalar(0));
+		memcpy(image.data, msg->image.data(), sizeof(char)*width*height*3);
 		//std::cout << image << "\n";
 		setTexture(image);
 		//std::cout << "img disp...\n";
@@ -266,9 +265,9 @@ void KeyFrameDisplay::refreshPC()
 
 void KeyFrameDisplay::setTexture(cv::Mat &color_channel)
 {
-    color_channel.convertTo(texture, CV_8UC1);
+    //color_channel.convertTo(texture, CV_8UC1);
 	texture_mutex.lock();
-	cv::cvtColor(color_channel, texture, cv::COLOR_GRAY2RGBA);
+	cv::cvtColor(color_channel, texture, cv::COLOR_BGR2RGBA);
 
 	for (int y = 0; y < height; ++y)
 		for (int x = 0; x < width; ++x) {
