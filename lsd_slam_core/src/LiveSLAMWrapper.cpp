@@ -115,6 +115,8 @@ void LiveSLAMWrapper::Loop()
 
 		//If we are synched properly
 		if (image.id_num == conf_mat.id_num) {
+			std::cout << "img: " << image.timestamp.toSec() << "\n";
+			std::cout << "conf: " << conf_mat.timestamp.toSec() << "\n";
 			// process image
 			imageStream->getImageBuffer()->popFront();
 			imageStream->getSegBuffer()->popFront();

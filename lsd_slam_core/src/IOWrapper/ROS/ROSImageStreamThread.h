@@ -54,7 +54,12 @@ namespace lsd_slam
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, 
 													sensor_msgs::Image,
 													sensor_msgs::Image,
-													sensor_msgs::Image> SynchPolicy;
+													sensor_msgs::Image> ImageSynchPolicy;
+
+typedef message_filters::sync_policies::ApproximateTime<object_inspection_ros::Output_img_msg, 
+													object_inspection_ros::Output_img_msg,
+													object_inspection_ros::Output_img_msg,
+													object_inspection_ros::Output_img_msg> SegSynchPolicy;
 
 /**
  * Image stream provider using ROS messages.
@@ -87,14 +92,17 @@ public:
 	bool depthReady();
 	
 	// get called on ros-message callbacks
-	void vidCb(const sensor_msgs::ImageConstPtr top_left_img/*,
+	void vidCb(const sensor_msgs::ImageConstPtr top_left_img,
 			   const sensor_msgs::ImageConstPtr top_right_img, 
 			   const sensor_msgs::ImageConstPtr bottom_left_img, 
-			   const sensor_msgs::ImageConstPtr bottom_right_img*/);
+			   const sensor_msgs::ImageConstPtr bottom_right_img);
 	void infoCb(const sensor_msgs::CameraInfoConstPtr info);
 	void radiusCb(const std_msgs::Float64::ConstPtr& msg);
 	void pointCloudCb(const sensor_msgs::PointCloud2ConstPtr msg);
-	void segmentationCb(const object_inspection_ros::Output_img_msgConstPtr top_left_seg);
+	void segmentationCb(const object_inspection_ros::Output_img_msgConstPtr top_left_seg,
+						const object_inspection_ros::Output_img_msgConstPtr top_right_seg,
+						const object_inspection_ros::Output_img_msgConstPtr bottom_left_seg,
+						const object_inspection_ros::Output_img_msgConstPtr bottom_right_seg);
 
 private:
 	//Image stream stuff
@@ -108,9 +116,13 @@ private:
 	message_filters::Subscriber<sensor_msgs::Image> *top_right_sub;
 	message_filters::Subscriber<sensor_msgs::Image> *bottom_left_sub;
 	message_filters::Subscriber<sensor_msgs::Image> *bottom_right_sub;
-	message_filters::Synchronizer<SynchPolicy> *image_sub;
+	message_filters::Synchronizer<ImageSynchPolicy> *image_sub;
 
-	ros::Subscriber top_left_segmentation_sub;
+	message_filters::Subscriber<object_inspection_ros::Output_img_msg> *top_left_segmentation_sub;
+	message_filters::Subscriber<object_inspection_ros::Output_img_msg> *top_right_segmentation_sub;
+	message_filters::Subscriber<object_inspection_ros::Output_img_msg> *bottom_left_segmentation_sub;
+	message_filters::Subscriber<object_inspection_ros::Output_img_msg> *bottom_right_segmentation_sub;
+	message_filters::Synchronizer<SegSynchPolicy> *segmentation_sub;
 
 	int lastSEQ;
 

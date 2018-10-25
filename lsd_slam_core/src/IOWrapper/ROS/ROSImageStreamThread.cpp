@@ -56,16 +56,16 @@ ROSImageStreamThread::ROSImageStreamThread()
 	// subscribe
 	//images
 	top_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_left_image"), 1);
-	/*top_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_right_image"), 1);
+	top_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("top_right_image"), 1);
 	bottom_left_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_left_image"), 1);
 	bottom_right_sub = new message_filters::Subscriber<sensor_msgs::Image>(nh_, nh_.resolveName("bottom_right_image"), 1);
 
-	image_sub = new message_filters::Synchronizer<SynchPolicy>(SynchPolicy(5),
+	image_sub = new message_filters::Synchronizer<ImageSynchPolicy>(ImageSynchPolicy(5),
 		*top_left_sub, *top_right_sub, *bottom_left_sub, *bottom_right_sub);
 
-	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));*/
+	image_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1, _2, _3, _4));
 
-	top_left_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1));
+	//top_left_sub->registerCallback(boost::bind(&ROSImageStreamThread::vidCb, this, _1));
 
 	//pointcloud
 	pointcloud_sub = nh_.subscribe(nh_.resolveName("pointcloud"), 1, &ROSImageStreamThread::pointCloudCb, this);
@@ -75,7 +75,15 @@ ROSImageStreamThread::ROSImageStreamThread()
 	radius_sub = nh_.subscribe(radius_channel,1, &ROSImageStreamThread::radiusCb, this);
 
 	//segmentation maps
-	top_left_segmentation_sub = nh_.subscribe(nh_.resolveName("top_left_segmentation"), 1, &ROSImageStreamThread::segmentationCb, this);
+	top_left_segmentation_sub = new message_filters::Subscriber<object_inspection_ros::Output_img_msg>(nh_, nh_.resolveName("top_left_segmentation"), 1);
+	top_right_segmentation_sub = new message_filters::Subscriber<object_inspection_ros::Output_img_msg>(nh_, nh_.resolveName("top_right_segmentation"), 1);
+	bottom_left_segmentation_sub = new message_filters::Subscriber<object_inspection_ros::Output_img_msg>(nh_, nh_.resolveName("bottom_left_segmentation"), 1);
+	bottom_right_segmentation_sub = new message_filters::Subscriber<object_inspection_ros::Output_img_msg>(nh_, nh_.resolveName("bottom_right_segmentation"), 1);
+	
+	segmentation_sub = new message_filters::Synchronizer<SegSynchPolicy>(SegSynchPolicy(5),
+		*top_left_segmentation_sub, *top_right_segmentation_sub, *bottom_left_segmentation_sub, *bottom_right_segmentation_sub);
+	
+	segmentation_sub->registerCallback(boost::bind(&ROSImageStreamThread::segmentationCb, this, _1, _2, _3, _4));
 
     // tf2 listener and buffer
     this->tf_buffer = new tf2_ros::Buffer();
@@ -260,22 +268,30 @@ void ROSImageStreamThread::operator()()
 	exit(0);
 }
 
-void ROSImageStreamThread::segmentationCb(const object_inspection_ros::Output_img_msgConstPtr top_left_seg)
+void ROSImageStreamThread::segmentationCb(const object_inspection_ros::Output_img_msgConstPtr top_left_seg,
+										  const object_inspection_ros::Output_img_msgConstPtr top_right_seg,
+										  const object_inspection_ros::Output_img_msgConstPtr bottom_left_seg,
+										  const object_inspection_ros::Output_img_msgConstPtr bottom_right_seg)
 {
 	if (!haveCalib) return;
 
-	//Load confidence matrix into opencv
-	cv::Mat image = cv::Mat(cv::Size(width_, height_), CV_32FC(9), cv::Scalar(0));
-	memcpy(image.data, top_left_seg->conf_mat.data(), sizeof(float)*width_*height_*NUM_SEG_CLASSES);
+	const object_inspection_ros::Output_img_msgConstPtr seg_ptrs[NUM_CAMERAS] = {top_left_seg, top_right_seg, bottom_left_seg, bottom_right_seg};
 
 	std::cout << "Conf mat received: " << top_left_seg->header.stamp << "\n";
 	std::cout << "Seq: " << top_left_seg->id_num << "\n";
 
-	//Buffer new matrix
+	//Load confidence matrix into opencv
+	cv::Mat image = cv::Mat(cv::Size(width_, height_), CV_32FC(9), cv::Scalar(0)); //Allocate memory
 	TimestampedSegmentation bufferItem;
 	bufferItem.id_num = top_left_seg->id_num;
+	bufferItem.timestamp = Timestamp(top_left_seg->header.stamp.toSec());
+	for (int i=0; i<NUM_CAMERAS; i++) {
+		memcpy(image.data, seg_ptrs[i]->conf_mat.data(), sizeof(float)*width_*height_*NUM_SEG_CLASSES);
 
-	undistorter[0]->undistortSeg(image,bufferItem.data[0]);
+		//Buffer new matrix
+		bufferItem.data[i] = cv::Mat(cv::Size(width_, height_), CV_32FC(9), cv::Scalar(0));
+		undistorter[i]->undistortSeg(image,bufferItem.data[i]);
+	}
 
 	segBuffer->pushBack(bufferItem);
 }
@@ -351,10 +367,10 @@ void ROSImageStreamThread::pointCloudCb(const sensor_msgs::PointCloud2ConstPtr m
 	haveDepthMap = true;
 }
 
-void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img/*,
+void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img,
 			   					 const sensor_msgs::ImageConstPtr top_right_img, 
 			   					 const sensor_msgs::ImageConstPtr bottom_left_img, 
-			   					 const sensor_msgs::ImageConstPtr bottom_right_img*/)
+			   					 const sensor_msgs::ImageConstPtr bottom_right_img)
 {
 	if(!haveCalib) return;
 	struct timeval tv_start, tv_end;
@@ -362,9 +378,9 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr top_left_img/*
 
 	cv_bridge::CvImagePtr cv_ptr[NUM_CAMERAS];
 	cv_ptr[0] = cv_bridge::toCvCopy(top_left_img, sensor_msgs::image_encodings::MONO8);
-	/*cv_ptr[1] = cv_bridge::toCvCopy(top_right_img, sensor_msgs::image_encodings::MONO8);
+	cv_ptr[1] = cv_bridge::toCvCopy(top_right_img, sensor_msgs::image_encodings::MONO8);
 	cv_ptr[2] = cv_bridge::toCvCopy(bottom_left_img, sensor_msgs::image_encodings::MONO8);
-	cv_ptr[3] = cv_bridge::toCvCopy(bottom_right_img, sensor_msgs::image_encodings::MONO8);*/
+	cv_ptr[3] = cv_bridge::toCvCopy(bottom_right_img, sensor_msgs::image_encodings::MONO8);
 
 	if(top_left_img->header.seq < (unsigned int)lastSEQ)
 	{

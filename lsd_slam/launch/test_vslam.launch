@@ -111,6 +111,7 @@
   <node pkg="image_proc" type="image_proc" name="image_proc_top_left">
     <remap from="image_raw" to="/camera/top_left_image_decomp"/>
     <remap from="image_mono" to="/camera/top_left_image_debayer"/>
+    <remap from="image_color" to="/unet_ros_node/tl/input_img"/>
   </node>
 
     <!-- Decompress the image -->
@@ -123,6 +124,7 @@
   <node pkg="image_proc" type="image_proc" name="image_proc_top_right">
     <remap from="image_raw" to="/camera/top_right_image_decomp"/>
     <remap from="image_mono" to="/camera/top_right_image_debayer"/>
+    <remap from="image_color" to="/unet_ros_node/tr/input_img"/>
   </node>
 
     <!-- Decompress the image -->
@@ -135,6 +137,7 @@
   <node pkg="image_proc" type="image_proc" name="image_proc_bottom_left">
     <remap from="image_raw" to="/camera/bottom_left_image_decomp"/>
     <remap from="image_mono" to="/camera/bottom_left_image_debayer"/>
+    <remap from="image_color" to="/unet_ros_node/bl/input_img"/>
   </node>
 
     <!-- Decompress the image -->
@@ -147,15 +150,18 @@
   <node pkg="image_proc" type="image_proc" name="image_proc_bottom_right">
     <remap from="image_raw" to="/camera/bottom_right_image_decomp"/>
     <remap from="image_mono" to="/camera/bottom_right_image_debayer"/>
-    <remap from="image_color" to="/unet_ros_node/tl/input_img"/>
+    <remap from="image_color" to="/unet_ros_node/br/input_img"/>
   </node>
 
   <!-- Segmentation -->
-  <node pkg="object_inspection_ros" name="segmentation_tl" type="listener.py" args="--cam tl"/>
+  <node pkg="object_inspection_ros" name="segmentation_tl" type="listener.py" args="--cam tl --nogpu true"/>
+  <node pkg="object_inspection_ros" name="segmentation_tr" type="listener.py" args="--cam tr --nogpu true"/>
+  <node pkg="object_inspection_ros" name="segmentation_bl" type="listener.py" args="--cam bl --nogpu true"/>
+  <node pkg="object_inspection_ros" name="segmentation_br" type="listener.py" args="--cam br --nogpu true"/>
 
   <!-- LSD SLAM system -->
   <!-- Yes, the bottom camera names are backwards for this dataset -->
-  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
+  <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen" launch-prefix="gdb -ex run --args">
     <remap from="top_left_image" to="/camera/bottom_right_image_debayer"/>
     <remap from="top_right_image" to="/camera/top_left_image_debayer"/>
     <remap from="bottom_left_image" to="/camera/top_right_image_debayer"/>
@@ -163,7 +169,10 @@
 
     <remap from="local_tunnel_radius" to="/test_icra2017_video/local_tunnel_radius"/>
 
-    <remap from="top_left_segmentation" to="/unet_ros_node/tl/conf_mat"/>
+    <remap from="top_left_segmentation" to="/unet_ros_node/br/conf_mat"/>
+    <remap from="top_right_segmentation" to="/unet_ros_node/tl/conf_mat"/>
+    <remap from="bottom_left_segmentation" to="/unet_ros_node/tr/conf_mat"/>
+    <remap from="bottom_right_segmentation" to="/unet_ros_node/bl/conf_mat"/>
 
     <param name="calib" value="/home/ian/.ros/camera_info/camera_intrinsics_set.cfg"/>
     <param name="use_tunnel_estimator" value="true"/>
