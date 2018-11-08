@@ -46,7 +46,8 @@
   <arg name="bagfile_path31" value="/media/ozaslan/research_backup/inspot_dataset/MayT2017CHDrip/Day3/phase1/inspot_2017-05-04-11-59-59.bag" />
   <arg name="bagfile_path32" value="/media/ozaslan/research_backup/inspot_dataset/MayT2017CHDrip/Day3/phase1/inspot_2017-05-04-15-24-28.bag" />
 -->
-  <arg name="bagfile_path" value="/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/AprilTags/inspot_2018-08-02-13-11-19-005.bag"/>
+  <!--<arg name="bagfile_path" value="/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/AprilTags/inspot_2018-08-02-13-11-19-005.bag"/>-->
+  <arg name="bagfile_path" value="/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/April2018/inspot_2018-04-10-14-34-11.bag"/>
   <arg name="debug_mode"   value="FALSE"/>
 
   <arg name="use_gdb" value="FALSE" />
@@ -149,9 +150,9 @@
   <!-- LSD SLAM system -->
   <!-- Yes, the bottom camera names are backwards for this dataset -->
   <node name="lsd_slam" pkg="lsd_slam_core" type="live_slam" output="screen">
-    <remap from="top_left_image" to="/camera/top_left_image_debayer"/>
-    <remap from="top_right_image" to="/camera/top_right_image_debayer"/>
-    <remap from="bottom_left_image" to="/camera/bottom_right_image_debayer"/>
+    <remap from="top_left_image" to="/camera/bottom_right_image_debayer"/>
+    <remap from="top_right_image" to="/camera/top_left_image_debayer"/>
+    <remap from="bottom_left_image" to="/camera/top_right_image_debayer"/>
     <remap from="bottom_right_image" to="/camera/bottom_left_image_debayer"/>
     <remap from="local_tunnel_radius" to="/test_icra2017_video/local_tunnel_radius"/>
     <param name="calib" value="/home/ian/.ros/camera_info/camera_intrinsics_set.cfg"/>
