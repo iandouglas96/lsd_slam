@@ -49,7 +49,9 @@
 
   <!-- AprilTags dataset -->
   <!--<arg name="bagfile_path" value="/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/AprilTags/inspot_2018-08-02-13-11-19-005.bag"/>-->
-  <arg name="bagfile_path" value="/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/April2018/inspot_2018-04-10-14-34-11.bag"/>
+  
+  <!--<arg name="bagfile_path" value="/media/ian/ResearchSSD/InspectionData/tunnel_datasets/CHD/April2018/inspot_2018-04-10-14-34-11.bag"/>-->
+  <arg name="bagfile_path" value="/home/ian/Downloads/inspot_2018-04-10-14-34-11.bag"/>
   <arg name="debug_mode"   value="FALSE"/>
 
   <arg name="use_gdb" value="FALSE" />
@@ -61,7 +63,7 @@
   </group>
 
 
-  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.05 --start=40 --duration=150 --clock">
+  <node pkg="rosbag" name="play" type="play" output="screen" args="--quiet --loop  $(arg bagfile_path) --rate=0.02 --start=0 --duration=150 --clock">
     <remap from="/velodyne_point_cloud" to="/velodyne_points"/>
     <remap from="/quadruple/bottom_left/image_raw/compressed"  to="/cam/bottom_left/compressed"/>
     <remap from="/quadruple/bottom_right/image_raw/compressed" to="/cam/bottom_right/compressed"/>

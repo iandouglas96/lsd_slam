@@ -980,7 +980,7 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], float* seg[NUM_CAMERAS], 
 																 height, K, timestamp, image[currentCamera], seg[currentCamera]));
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		if (i != currentCamera) {
-			image_arr[i] = std::shared_ptr<Frame>(new Frame((frameID*NUM_CAMERAS)+i, width, height, K, timestamp, image[i], seg[currentCamera]));
+			image_arr[i] = std::shared_ptr<Frame>(new Frame((frameID*NUM_CAMERAS)+i, width, height, K, timestamp, image[i], seg[i]));
 			image_arr[i]->pose->trackingParent = image_arr[currentCamera]->pose;
 			image_arr[i]->pose->thisToParent_raw = lidarDepth->getTransformBetweenCameras(currentCamera, i);
 		}
@@ -991,6 +991,13 @@ void SlamSystem::trackFrame(uchar* image[NUM_CAMERAS], float* seg[NUM_CAMERAS], 
 	std::shared_ptr<FrameSet> fs(new FrameSet(image_arr));
 	for (int i=0; i<NUM_CAMERAS; i++) {
 		image_arr[i]->setFrameSet(fs);
+
+		int cam = image_arr[i]->id() % NUM_CAMERAS;
+		int id = image_arr[i]->id() / NUM_CAMERAS;
+
+		cv::Mat segcv = Util::renderSegmentation(image_arr[i]->segmentation(), width, height, NUM_SEG_CLASSES);
+		std::string path = "/media/ian/ResearchSSD/InspectionData/tunnel_seg/raw/" + std::to_string(cam) + "/" + std::to_string(id) + ".bmp";
+		cv::imwrite(path, segcv);
 	}
 
 	std::shared_ptr<Frame> trackingNewFrame = image_arr[currentCamera];

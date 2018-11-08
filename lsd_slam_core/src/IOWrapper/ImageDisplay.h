@@ -39,15 +39,15 @@ namespace Util
 
 const cv::Vec3b colors[9] = 
 {
-	cv::Vec3b(0, 0, 0),
-	cv::Vec3b(0, 254, 254),
-	cv::Vec3b(254, 0, 254),
-	cv::Vec3b(254, 0, 0),
-	cv::Vec3b(254, 254, 0),
-	cv::Vec3b(0, 254, 0),
-	cv::Vec3b(130, 130, 0),
-	cv::Vec3b(0, 130, 130),
-	cv::Vec3b(130, 0, 130)
+	cv::Vec3b(255, 255, 255),
+	cv::Vec3b(69, 83, 32),
+	cv::Vec3b(45, 55, 20),
+	cv::Vec3b(255, 0, 102),
+	cv::Vec3b(255, 0, 255),
+	cv::Vec3b(255, 102, 0),
+	cv::Vec3b(0, 255, 0),
+	cv::Vec3b(0, 51, 102),
+	cv::Vec3b(102, 153, 255)
 };
 
 void displayThreadLoop();

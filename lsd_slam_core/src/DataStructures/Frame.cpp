@@ -125,7 +125,8 @@ Frame::~Frame()
 	FrameMemory::getInstance().returnBuffer((float*)data.validity_reAct);
 	FrameMemory::getInstance().returnBuffer(data.idepth_reAct);
 	FrameMemory::getInstance().returnBuffer(data.idepthVar_reAct);
-	FrameMemory::getInstance().returnBuffer(data.segmentation);
+	if (data.segmentationValid)
+		FrameMemory::getInstance().returnBuffer(data.segmentation);
 
 	if(permaRef_colorAndVarData != 0)
 		delete permaRef_colorAndVarData;

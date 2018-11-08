@@ -40,6 +40,9 @@
 #include "GlobalMapping/g2oTypeSE3Sophus.h"
 #include <Eigen/Dense>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/opencv.hpp>
+
 namespace lsd_slam
 {
 
@@ -122,9 +125,16 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 
 	//load image and reference data
 	if (f->segmentation() != NULL) {
-		cv::Mat overlay = Util::renderSegmentationOverlay(f->segmentation(), f->image(0), w, h, NUM_SEG_CLASSES);
+		cv::Mat overlay = Util::renderSegmentation(f->segmentation(), w, h, NUM_SEG_CLASSES);
+		//cv::Mat overlay = Util::renderSegmentationOverlay(f->segmentation(), f->image(0), w, h, NUM_SEG_CLASSES);
 		fMsg.image.resize(sizeof(char)*w*h*3);
 		memcpy(fMsg.image.data(), overlay.data, sizeof(char)*w*h*3); //Copy data
+
+		int cam = f->id() % NUM_CAMERAS;
+		int id = f->id() / NUM_CAMERAS;
+
+		std::string path = "/media/ian/ResearchSSD/InspectionData/tunnel_seg/filtered/" + std::to_string(cam) + "/" + std::to_string(id) + ".bmp";
+		cv::imwrite(path, overlay);
 	}
 	tf2::convert(f->tunnelPose().transform().translation(), fMsg.tunnel_pose.position);
 	//std::cout << "pos: " << f->tunnelPose().transform().translation() << "\n";
